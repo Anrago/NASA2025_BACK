@@ -4,6 +4,8 @@ import { AppService } from './app.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from './users/users.module';
+import { HistoricalModule } from './historical/historical.module';
+import { MessagesModule } from './messages/messages.module';
 import { VertexAIModule } from './vertexai/vertex-ai.module';
 
 @Module({
@@ -18,10 +20,10 @@ import { VertexAIModule } from './vertexai/vertex-ai.module';
       inject: [ConfigService],
     }),
     UsersModule,
+    HistoricalModule,
+    MessagesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
-
 })
-
 export class AppModule {}
