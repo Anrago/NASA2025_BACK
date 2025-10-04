@@ -20,17 +20,13 @@ export class AuthService {
       throw new UnauthorizedException('Email y contraseña son requeridos');
     }
 
-    console.log('Buscando usuario con email:', email);
     const user = await this.usersService.findByEmail(email);
-    console.log('Usuario encontrado:', user ? 'Sí' : 'No');
 
     if (!user) {
       throw new UnauthorizedException('Email inválido');
     }
 
-    console.log('Validando contraseña...');
     const isPasswordValid = await bcrypt.compare(pass, user.password);
-    console.log('Contraseña válida:', isPasswordValid);
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Contraseña inválida');
@@ -38,29 +34,28 @@ export class AuthService {
 
     // Convert Mongoose document to plain object
     const userObj = user.toObject ? user.toObject() : user;
-    const { password, ...result } = userObj as { password: string; [key: string]: any };
-    console.log('Usuario validado:', result);
+    const { password, ...result } = userObj as {
+      password: string;
+      [key: string]: any;
+    };
     return result;
   }
 
   async login(payload: Auth) {
-    console.log('Iniciando login para:', payload.email);
     const user = await this.validateUser(payload.email, payload.password);
-    console.log('Usuario después de validación:', user);
-
     const jwtPayload = { email: user.email, sub: user._id || user.id };
 
     const response = {
       access_token: this.jwtService.sign(jwtPayload),
       user: {
-        id: user._id || user.id,
+        _id: user._id || user.id, // Usar _id consistentemente
+        id: user._id || user.id, // Mantener id para compatibilidad
         email: user.email,
         name: user.name,
         image: user.image,
       },
     };
 
-    console.log('Respuesta del login:', response);
     return response;
   }
 }

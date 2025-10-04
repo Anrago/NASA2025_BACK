@@ -19,6 +19,8 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AddFavoriteDto } from './dto/add-favorite.dto';
+import { RemoveFavoriteDto } from './dto/remove-favorite.dto';
 import { User } from '../schemas/user.schema';
 
 @ApiTags('users')
@@ -124,5 +126,74 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
+  }
+
+  @Post(':id/favorites')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Add article to user favorites' })
+  @ApiParam({
+    name: 'id',
+    description: 'MongoDB ObjectId of the user',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiBody({
+    type: AddFavoriteDto,
+    description: 'Article ID to add to favorites',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Article successfully added to favorites',
+    type: User,
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 400, description: 'Article already in favorites' })
+  addToFavorites(
+    @Param('id') id: string,
+    @Body() addFavoriteDto: AddFavoriteDto,
+  ) {
+    return this.usersService.addToFavorites(id, addFavoriteDto);
+  }
+
+  @Delete(':id/favorites')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Remove article from user favorites' })
+  @ApiParam({
+    name: 'id',
+    description: 'MongoDB ObjectId of the user',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiBody({
+    type: RemoveFavoriteDto,
+    description: 'Article ID to remove from favorites',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Article successfully removed from favorites',
+    type: User,
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 400, description: 'Article not in favorites' })
+  removeFromFavorites(
+    @Param('id') id: string,
+    @Body() removeFavoriteDto: RemoveFavoriteDto,
+  ) {
+    return this.usersService.removeFromFavorites(id, removeFavoriteDto);
+  }
+
+  @Get(':id/favorites')
+  @ApiOperation({ summary: 'Get user favorites' })
+  @ApiParam({
+    name: 'id',
+    description: 'MongoDB ObjectId of the user',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User favorites retrieved successfully',
+    type: [String],
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  getFavorites(@Param('id') id: string) {
+    return this.usersService.getFavorites(id);
   }
 }

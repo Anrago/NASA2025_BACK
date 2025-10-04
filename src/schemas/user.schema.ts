@@ -47,6 +47,14 @@ export class User {
   image: string;
 
   @ApiProperty({
+    description: 'Array of favorite article IDs',
+    example: ['article1', 'article2'],
+    nullable: true,
+  })
+  @Prop({ default: [], type: [String] })
+  favorites: string[];
+
+  @ApiProperty({
     description: 'Timestamp when the user was created',
     example: '2025-10-04T12:00:00.000Z',
   })
