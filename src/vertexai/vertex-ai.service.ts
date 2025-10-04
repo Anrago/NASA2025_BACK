@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { VertexAI } from '@google-cloud/vertexai';
-import { VertexAIRequestDto, VertexAIResponseDto } from './dto';
+import { VertexAIRequestDto, VertexAIResponseDto, SimplePromptDto, AIResponseDto } from './dto';
 
 @Injectable()
 export class VertexAIService {
@@ -80,7 +80,7 @@ export class VertexAIService {
           true,
           { status: 'healthy' },
           undefined,
-          'VertexAI service is working correctly'
+          result.message
         );
       } else {
         return result;
@@ -94,6 +94,79 @@ export class VertexAIService {
         undefined,
         error.message || 'Health check failed',
         'VertexAI service is not healthy'
+      );
+    }
+  }
+
+  async simplePrompt(promptDto: SimplePromptDto): Promise<AIResponseDto> {
+    const startTime = Date.now();
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    
+    try {
+      this.logger.log(`[${requestId}] Processing prompt: ${promptDto.prompt.substring(0, 100)}...`);
+
+      const model = 'gemini-2.5-flash-lite';
+      const temperature = promptDto.temperature || 0.7;
+      const maxTokens = promptDto.maxTokens || 1024;
+
+      const generativeModel = this.vertexAI.preview.getGenerativeModel({
+        model: model,
+        generationConfig: {
+          temperature,
+          maxOutputTokens: maxTokens,
+          topP: 0.8,
+          topK: 40,
+        },
+      });
+
+      // Generar contenido
+      const result = await generativeModel.generateContent(promptDto.prompt);
+      const response = await result.response;
+      const generatedText = response.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar respuesta';
+
+      const endTime = Date.now();
+      const processingTime = `${endTime - startTime}ms`;
+
+      // Calcular tokens (aproximado)
+      const promptTokens = Math.ceil(promptDto.prompt.length / 4);
+      const responseTokens = Math.ceil(generatedText.length / 4);
+      const totalTokens = promptTokens + responseTokens;
+
+      this.logger.log(`[${requestId}] Content generated successfully in ${processingTime}`);
+
+      return new AIResponseDto(
+        true,
+        generatedText,
+        model,
+        temperature,
+        processingTime,
+        requestId,
+        {
+          promptTokens,
+          responseTokens,
+          totalTokens,
+        }
+      );
+
+    } catch (error) {
+      const endTime = Date.now();
+      const processingTime = `${endTime - startTime}ms`;
+      
+      this.logger.error(`[${requestId}] Error generating content:`, error);
+      
+      return new AIResponseDto(
+        false,
+        '',
+        'gemini-2.5-flash-lite',
+        promptDto.temperature || 0.7,
+        processingTime,
+        requestId,
+        undefined,
+        {
+          code: 'GENERATION_ERROR',
+          message: error.message || 'Error desconocido al generar contenido',
+          details: error.stack,
+        }
       );
     }
   }
