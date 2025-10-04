@@ -6,6 +6,9 @@ export type UserDocument = HydratedDocument<User>;
 
 @Schema({ timestamps: true })
 export class User {
+  toObject() {
+    throw new Error('Method not implemented.');
+  }
   @ApiProperty({
     description: 'The unique identifier of the user',
     example: '507f1f77bcf86cd799439011',

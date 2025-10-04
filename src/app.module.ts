@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { HistoricalModule } from './historical/historical.module';
 import { MessagesModule } from './messages/messages.module';
 import { VertexAIModule } from './vertexai/vertex-ai.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { VertexAIModule } from './vertexai/vertex-ai.module';
       inject: [ConfigService],
     }),
     UsersModule,
+    AuthModule,
     HistoricalModule,
     MessagesModule,
   ],
