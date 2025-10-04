@@ -5,6 +5,25 @@ export interface StructuredArticle {
   tags: string[];
 }
 
+// Frontend-compatible graph interfaces
+export interface GraphNode {
+  id: string;
+  name: string;
+  group: string;
+}
+
+export interface GraphLink {
+  source: string;
+  target: string;
+  value: number;
+}
+
+export interface FrontendGraphData {
+  nodes: GraphNode[];
+  links: GraphLink[];
+}
+
+// Legacy interfaces for backward compatibility
 export interface StructuredGraphNode {
   id: string; // article title
   is_central_node: boolean;
@@ -23,18 +42,18 @@ export interface StructuredRelationshipGraph {
 export interface StructuredResponseData {
   answer: string;
   related_articles: StructuredArticle[];
-  relationship_graph: StructuredRelationshipGraph;
+  relationship_graph: FrontendGraphData;
 }
 
 export class SimpleStructuredResponseDto implements StructuredResponseData {
   answer: string;
   related_articles: StructuredArticle[];
-  relationship_graph: StructuredRelationshipGraph;
+  relationship_graph: FrontendGraphData;
 
   constructor(
     answer: string,
     related_articles: StructuredArticle[],
-    relationship_graph: StructuredRelationshipGraph
+    relationship_graph: FrontendGraphData
   ) {
     this.answer = answer;
     this.related_articles = related_articles;
@@ -70,37 +89,49 @@ export class SimpleStructuredResponseDto implements StructuredResponseData {
       }
     ];
 
-    const mockGraph: StructuredRelationshipGraph = {
+    const mockGraph: FrontendGraphData = {
       nodes: [
         {
-          id: "AI and Machine Learning: Current Trends",
-          is_central_node: true
+          id: "ai-machine-learning",
+          name: "AI and Machine Learning: Current Trends",
+          group: "AI"
         },
         {
-          id: "Natural Language Processing Advances",
-          is_central_node: false
+          id: "nlp-advances",
+          name: "Natural Language Processing Advances",
+          group: "AI"
         },
         {
-          id: "Deep Learning Applications", 
-          is_central_node: false
+          id: "deep-learning",
+          name: "Deep Learning Applications",
+          group: "AI"
         },
         {
-          id: "Computer Vision Technologies",
-          is_central_node: false
+          id: "computer-vision",
+          name: "Computer Vision Technologies",
+          group: "AI"
         }
       ],
-      edges: [
+      links: [
         {
-          source: "AI and Machine Learning: Current Trends",
-          target: "Natural Language Processing Advances"
+          source: "ai-machine-learning",
+          target: "nlp-advances",
+          value: 3
         },
         {
-          source: "AI and Machine Learning: Current Trends", 
-          target: "Deep Learning Applications"
+          source: "ai-machine-learning",
+          target: "deep-learning",
+          value: 4
         },
         {
-          source: "AI and Machine Learning: Current Trends",
-          target: "Computer Vision Technologies"
+          source: "ai-machine-learning",
+          target: "computer-vision",
+          value: 2
+        },
+        {
+          source: "nlp-advances",
+          target: "deep-learning",
+          value: 2
         }
       ]
     };

@@ -375,18 +375,20 @@ export class VertexAIController {
               items: {
                 type: 'object',
                 properties: {
-                  id: { type: 'string', description: 'Article title' },
-                  is_central_node: { type: 'boolean' }
+                  id: { type: 'string', description: 'Unique identifier in kebab-case' },
+                  name: { type: 'string', description: 'Display name for the node' },
+                  group: { type: 'string', description: 'Category or group name' }
                 }
               }
             },
-            edges: {
+            links: {
               type: 'array',
               items: {
                 type: 'object',
                 properties: {
-                  source: { type: 'string', description: 'Central node title' },
-                  target: { type: 'string', description: 'Connected node title' }
+                  source: { type: 'string', description: 'Source node ID' },
+                  target: { type: 'string', description: 'Target node ID' },
+                  value: { type: 'number', description: 'Connection strength (1-5)' }
                 }
               }
             }

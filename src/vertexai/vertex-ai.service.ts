@@ -490,11 +490,34 @@ export class VertexAIService {
         
         // Validar que tenga la estructura requerida
         if (jsonResponse && jsonResponse.answer && jsonResponse.related_articles && jsonResponse.relationship_graph) {
-          return {
-            answer: jsonResponse.answer,
-            related_articles: jsonResponse.related_articles,
-            relationship_graph: jsonResponse.relationship_graph
-          };
+          // Validar estructura del grafo para frontend
+          const graph = jsonResponse.relationship_graph;
+          if (graph.nodes && graph.links && Array.isArray(graph.nodes) && Array.isArray(graph.links)) {
+            // Validar que los nodos tengan las propiedades requeridas
+            const validNodes = graph.nodes.every((node: any) => 
+              node.id && node.name && node.group
+            );
+            
+            // Validar que los links tengan las propiedades requeridas
+            const validLinks = graph.links.every((link: any) => 
+              link.source && link.target && typeof link.value === 'number'
+            );
+
+            if (validNodes && validLinks) {
+              return {
+                answer: jsonResponse.answer,
+                related_articles: jsonResponse.related_articles,
+                relationship_graph: {
+                  nodes: graph.nodes,
+                  links: graph.links
+                }
+              };
+            } else {
+              throw new Error('Invalid graph structure - missing required properties');
+            }
+          } else {
+            throw new Error('Invalid relationship_graph format - missing nodes or links');
+          }
         } else {
           throw new Error('Invalid JSON structure received from model');
         }
@@ -517,21 +540,99 @@ export class VertexAIService {
 
   /**
    * Construye un prompt usando el template científico del .env
-   * Reemplaza {user_query} con la consulta del usuario
+   * Reemplaza {user_query} con la consulta del usuario y actualiza el formato para el frontend
    */
   private buildScientificStructuredPrompt(userQuery: string): string {
-    // Obtener el template del .env
-    const template = process.env.VERTEXAI_MESSAGE_TEMPLATE || '';
+    // Obtener el template base del .env
+    const baseTemplate = process.env.VERTEXAI_MESSAGE_TEMPLATE || '';
     
-    if (!template) {
+    if (!baseTemplate) {
       this.logger.warn('VERTEXAI_MESSAGE_TEMPLATE not found in environment variables, using fallback');
-      return `Based on the following query, generate a JSON response with the exact structure: answer, related_articles, and relationship_graph.\n\nQuery: ${userQuery}`;
+      return this.buildFallbackPrompt(userQuery);
     }
 
+    // Crear el template actualizado con el formato del frontend
+    const updatedTemplate = `Your task is to act as the final step in the pipeline. You will be given a user's query.
+
+Your sole purpose is to:
+
+1. Automatically retrieve relevant scientific articles or documents related to the user's query from the available database.
+2. Synthesize the retrieved information into a single, valid JSON object response.
+
+You MUST NOT use any external knowledge or generate any data (including author names, years, or findings) that is not explicitly present in the retrieved articles.
+
+Input You Will Receive:
+
+user_query: '{user_query}'
+
+Your Task:
+
+Based only on the provided user_query and the articles you retrieve, generate a JSON object with the following EXACT structure:
+
+{
+  "answer": "string",
+  "related_articles": [
+    {
+      "title": "string",
+      "year": integer,  
+      "authors": ["string"],
+      "tags": ["string"]
+    }
+  ],
+  "relationship_graph": {
+    "nodes": [
+      {
+        "id": "string (unique identifier, use kebab-case)",
+        "name": "string (descriptive name)",
+        "group": "string (category/group name)"
+      }
+    ],
+    "links": [
+      {
+        "source": "string (node id)",
+        "target": "string (node id)", 
+        "value": integer (1-5, strength of connection)
+      }
+    ]
+  }
+}
+
+Critical Instructions for the relationship_graph:
+- Generate at least 8-16 nodes with meaningful scientific connections
+- Use descriptive "name" field for each node (what humans will see)
+- Use kebab-case "id" field for each node (for technical references)
+- Group related nodes under meaningful "group" categories
+- Create realistic "links" with connection strengths (value: 1-5)
+- Include both intra-group and inter-group connections
+- Make the graph scientifically accurate and relevant to the query
+
+Instructions:
+- Retrieve at least the top 4-6 most relevant articles automatically
+- Your entire output must be ONLY the JSON object. Do not include any explanatory text before or after the JSON code block.`;
+
     // Reemplazar {user_query} con la consulta actual
-    const enhancedPrompt = template.replace('{user_query}', userQuery);
+    const enhancedPrompt = updatedTemplate.replace('{user_query}', userQuery);
     
     return enhancedPrompt;
+  }
+
+  /**
+   * Genera un prompt de respaldo cuando no hay template en el .env
+   */
+  private buildFallbackPrompt(userQuery: string): string {
+    return `Generate a comprehensive JSON response for the following query: "${userQuery}"
+
+Required JSON structure:
+{
+  "answer": "detailed response",
+  "related_articles": [{"title": "string", "year": number, "authors": ["string"], "tags": ["string"]}],
+  "relationship_graph": {
+    "nodes": [{"id": "kebab-case-id", "name": "Display Name", "group": "Category"}],
+    "links": [{"source": "node-id", "target": "node-id", "value": 1-5}]
+  }
+}
+
+Make the response scientifically accurate and include a meaningful relationship graph with at least 8 nodes.`;
   }
 
   /**
