@@ -6,16 +6,17 @@ import * as dotenv from 'dotenv';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  
   const config = new DocumentBuilder()
-    .setTitle('NASA 2025 API')
+  .setTitle('NASA 2025 API')
     .setVersion('1.0')
     .addTag('nasa')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
-
+  
   dotenv.config();
+
   
   // Habilitar validaciones globales
   app.useGlobalPipes(
@@ -31,4 +32,5 @@ async function bootstrap() {
   
   await app.listen(process.env.PORT ?? 3000);
 }
+
 bootstrap();
