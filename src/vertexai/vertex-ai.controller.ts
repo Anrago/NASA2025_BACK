@@ -10,7 +10,12 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { VertexAIService } from './vertex-ai.service';
-import { VertexAIRequestDto, VertexAIResponseDto } from './dto';
+import {
+  VertexAIRequestDto,
+  VertexAIResponseDto,
+  SimplePromptDto,
+  AIResponseDto,
+} from './dto';
 
 /**
  * Controller for interacting with Google Cloud VertexAI
@@ -198,6 +203,51 @@ export class VertexAIController {
         },
         HttpStatus.SERVICE_UNAVAILABLE,
       );
+    }
+  }
+
+  @Post('prompt')
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  async simplePrompt(
+    @Body() promptDto: SimplePromptDto,
+  ): Promise<AIResponseDto> {
+    try {
+      const result = await this.vertexAIService.simplePrompt(promptDto);
+
+      if (!result.success && result.error) {
+        throw new HttpException(
+          {
+            success: false,
+            error: result.error,
+            metadata: result.metadata,
+          },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      return result;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      // Crear respuesta de error estructurada
+      const errorResponse = new AIResponseDto(
+        false,
+        '',
+        'gemini-2.5-flash-lite',
+        0.7,
+        '0ms',
+        undefined,
+        undefined,
+        {
+          code: 'CONTROLLER_ERROR',
+          message: error.message || 'Error interno del servidor',
+          details: error.stack,
+        },
+      );
+
+      throw new HttpException(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }
