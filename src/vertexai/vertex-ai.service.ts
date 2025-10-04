@@ -5,8 +5,13 @@ import {
   VertexAIResponseDto,
   SimplePromptDto,
   AIResponseDto,
+  StructuredPromptDto,
+  StructuredResponseDto,
+  ResponseFormat,
+  ContentType,
+  StructuredContent
 } from './dto';
-
+import { ContentProcessorService } from './content-processor.service';
 /**
  * Service for interacting with Google Cloud VertexAI API
  * Handles AI content generation using Google's Gemini models
@@ -27,7 +32,7 @@ export class VertexAIService {
    * Initializes the VertexAI service with Google Cloud credentials
    * Reads configuration from environment variables
    */
-  constructor() {
+  constructor(private readonly contentProcessor: ContentProcessorService) {
     // Inicializar VertexAI
     // Nota: Necesitarás configurar las credenciales de Google Cloud
     this.vertexAI = new VertexAI({
@@ -222,5 +227,220 @@ export class VertexAIService {
         },
       );
     }
+  }
+
+  async structuredPrompt(promptDto: StructuredPromptDto): Promise<StructuredResponseDto> {
+    const startTime = Date.now();
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    
+    try {
+      this.logger.log(`[${requestId}] Processing structured prompt: ${promptDto.prompt.substring(0, 100)}...`);
+
+      const model = 'gemini-2.5-flash-lite';
+      const temperature = promptDto.temperature || 0.7;
+      const maxTokens = promptDto.maxTokens || 2048;
+      const responseFormat = promptDto.responseFormat || ResponseFormat.STRUCTURED;
+      const contentType = promptDto.contentType || ContentType.EXPLANATION;
+
+      // Construir prompt mejorado basado en el tipo de contenido y formato
+      const enhancedPrompt = this.buildEnhancedPrompt(promptDto, responseFormat, contentType);
+
+      const generativeModel = this.vertexAI.preview.getGenerativeModel({
+        model: model,
+        generationConfig: {
+          temperature,
+          maxOutputTokens: maxTokens,
+          topP: 0.8,
+          topK: 40,
+        },
+      });
+
+      // Generar contenido
+      const result = await generativeModel.generateContent(enhancedPrompt);
+      const response = await result.response;
+      const rawResponse = response.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar respuesta';
+
+      const endTime = Date.now();
+      const processingTime = `${endTime - startTime}ms`;
+
+      // Procesar el contenido para estructurarlo
+      const structuredContent = await this.contentProcessor.processContent(
+        rawResponse,
+        contentType,
+        promptDto.includeExamples
+      );
+
+      // Calcular métricas de rendimiento
+      const promptTokens = Math.ceil(enhancedPrompt.length / 4);
+      const responseTokens = Math.ceil(rawResponse.length / 4);
+      const totalTokens = promptTokens + responseTokens;
+
+      const performance = {
+        processingTime,
+        promptTokens,
+        responseTokens,
+        totalTokens,
+        modelConfidence: this.calculateConfidence(rawResponse),
+        contentQuality: this.assessContentQuality(structuredContent),
+      };
+
+      const metadata = {
+        requestId,
+        timestamp: new Date().toISOString(),
+        version: '2.0.0',
+        model,
+        temperature,
+        maxTokens,
+        responseFormat,
+        contentType,
+      };
+
+      this.logger.log(`[${requestId}] Structured content generated successfully in ${processingTime}`);
+
+      return new StructuredResponseDto(
+        true,
+        rawResponse,
+        structuredContent,
+        performance,
+        metadata
+      );
+
+    } catch (error) {
+      const endTime = Date.now();
+      const processingTime = `${endTime - startTime}ms`;
+      
+      this.logger.error(`[${requestId}] Error generating structured content:`, error);
+      
+      const performance = {
+        processingTime,
+        promptTokens: 0,
+        responseTokens: 0,
+        totalTokens: 0,
+      };
+
+      const metadata = {
+        requestId,
+        timestamp: new Date().toISOString(),
+        version: '2.0.0',
+        model: 'gemini-2.5-flash-lite',
+        temperature: promptDto.temperature || 0.7,
+        maxTokens: promptDto.maxTokens || 2048,
+        responseFormat: promptDto.responseFormat || ResponseFormat.STRUCTURED,
+        contentType: promptDto.contentType || ContentType.EXPLANATION,
+      };
+      
+      return StructuredResponseDto.createError(
+        'STRUCTURED_GENERATION_ERROR',
+        error.message || 'Error al generar contenido estructurado',
+        metadata,
+        performance,
+        error.stack,
+        [
+          'Verifica que el prompt sea claro y específico',
+          'Intenta reducir la complejidad del contenido solicitado',
+          'Revisa la configuración de parámetros'
+        ]
+      );
+    }
+  }
+
+  private buildEnhancedPrompt(promptDto: StructuredPromptDto, responseFormat: ResponseFormat, contentType: ContentType): string {
+    let enhancedPrompt = promptDto.prompt;
+
+    // Agregar contexto si se proporciona
+    if (promptDto.context) {
+      enhancedPrompt = `Contexto: ${promptDto.context}\n\nPregunta: ${enhancedPrompt}`;
+    }
+
+    // Instrucciones específicas según el tipo de contenido
+    const contentInstructions = this.getContentInstructions(contentType);
+    
+    // Instrucciones de formato
+    const formatInstructions = this.getFormatInstructions(responseFormat, promptDto.includeExamples);
+
+    enhancedPrompt += `\n\n${contentInstructions}\n\n${formatInstructions}`;
+
+    return enhancedPrompt;
+  }
+
+  private getContentInstructions(contentType: ContentType): string {
+    const instructions = {
+      [ContentType.EXPLANATION]: 'Proporciona una explicación clara y detallada. Organiza la información de manera lógica con introducción, desarrollo y conclusión.',
+      [ContentType.LIST]: 'Presenta la información como una lista estructurada con elementos claros y concisos.',
+      [ContentType.TUTORIAL]: 'Crea un tutorial paso a paso con instrucciones claras y progresivas.',
+      [ContentType.CODE]: 'Incluye ejemplos de código bien comentados y explicaciones técnicas precisas.',
+      [ContentType.CREATIVE]: 'Usa tu creatividad para generar contenido original e interesante.',
+      [ContentType.ANALYSIS]: 'Realiza un análisis profundo con evaluación crítica y conclusiones fundamentadas.',
+      [ContentType.QUESTION_ANSWER]: 'Responde de manera directa y completa, abordando todos los aspectos de la pregunta.',
+    };
+
+    return instructions[contentType] || instructions[ContentType.EXPLANATION];
+  }
+
+  private getFormatInstructions(responseFormat: ResponseFormat, includeExamples?: boolean): string {
+    let instructions = '';
+
+    switch (responseFormat) {
+      case ResponseFormat.STRUCTURED:
+        instructions = 'Estructura tu respuesta con títulos y subtítulos claros. Usa formato markdown para mejorar la legibilidad.';
+        break;
+      case ResponseFormat.JSON:
+        instructions = 'Si es apropiado, incluye datos estructurados en formato JSON válido.';
+        break;
+      case ResponseFormat.MARKDOWN:
+        instructions = 'Usa formato markdown completo con títulos, listas, enlaces y formato de código cuando sea necesario.';
+        break;
+      case ResponseFormat.TEXT:
+        instructions = 'Presenta la información en texto plano bien organizado.';
+        break;
+    }
+
+    if (includeExamples) {
+      instructions += ' Incluye ejemplos prácticos y casos de uso cuando sea relevante.';
+    }
+
+    return instructions;
+  }
+
+  private calculateConfidence(response: string): number {
+    // Algoritmo simple para calcular confianza basado en la calidad de la respuesta
+    let confidence = 0.5;
+
+    // Penalizar respuestas muy cortas
+    if (response.length < 100) confidence -= 0.2;
+    if (response.length > 500) confidence += 0.2;
+
+    // Bonificar por estructura
+    if (response.includes('\n\n')) confidence += 0.1; // Párrafos
+    if (response.match(/^#+\s/gm)) confidence += 0.1; // Headers markdown
+    if (response.match(/^\d+\./gm)) confidence += 0.1; // Listas numeradas
+
+    // Bonificar por contenido específico
+    if (response.includes('ejemplo')) confidence += 0.1;
+    if (response.includes('```')) confidence += 0.1; // Código
+
+    return Math.min(1.0, Math.max(0.0, confidence));
+  }
+
+  private assessContentQuality(content: StructuredContent): number {
+    let quality = 0.5;
+
+    // Evaluar completitud
+    if (content.sections.length > 1) quality += 0.2;
+    if (content.keyTakeaways.length > 0) quality += 0.1;
+    if (content.summary.length > 50) quality += 0.1;
+
+    // Evaluar estructura
+    const hasSubsections = content.sections.some(s => s.subsections && s.subsections.length > 0);
+    if (hasSubsections) quality += 0.1;
+
+    // Evaluar contenido enriquecido
+    const hasExamples = content.sections.some(s => s.examples && s.examples.length > 0);
+    const hasCode = content.sections.some(s => s.codeSnippets && s.codeSnippets.length > 0);
+    
+    if (hasExamples) quality += 0.1;
+    if (hasCode) quality += 0.1;
+
+    return Math.min(1.0, Math.max(0.0, quality));
   }
 }

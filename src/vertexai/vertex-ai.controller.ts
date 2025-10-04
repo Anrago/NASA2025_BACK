@@ -15,6 +15,8 @@ import {
   VertexAIResponseDto,
   SimplePromptDto,
   AIResponseDto,
+  StructuredPromptDto, 
+  StructuredResponseDto
 } from './dto';
 
 /**
@@ -246,6 +248,75 @@ export class VertexAIController {
           details: error.stack,
         },
       );
+
+      throw new HttpException(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post('structured')
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  async structuredPrompt(
+    @Body() promptDto: StructuredPromptDto,
+  ): Promise<StructuredResponseDto> {
+    try {
+      const result = await this.vertexAIService.structuredPrompt(promptDto);
+      
+      if (!result.success && result.error) {
+        throw new HttpException(
+          {
+            success: false,
+            error: result.error,
+            metadata: result.metadata,
+          },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      return result;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      // Crear respuesta de error estructurada
+      const errorResponse = {
+        success: false,
+        data: {
+          rawResponse: '',
+          structuredContent: {
+            summary: '',
+            mainTopic: '',
+            sections: [],
+            keyTakeaways: [],
+          },
+          performance: {
+            processingTime: '0ms',
+            promptTokens: 0,
+            responseTokens: 0,
+            totalTokens: 0,
+          },
+        },
+        metadata: {
+          requestId: `error_${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          version: '2.0.0',
+          model: 'gemini-2.5-flash-lite',
+          temperature: 0.7,
+          maxTokens: 2048,
+          responseFormat: 'structured',
+          contentType: 'explanation',
+        },
+        error: {
+          code: 'CONTROLLER_ERROR',
+          message: error.message || 'Error interno del servidor',
+          details: error.stack,
+          suggestions: [
+            'Verifica que todos los campos requeridos estén presentes',
+            'Revisa el formato del prompt',
+            'Intenta con parámetros diferentes'
+          ],
+        },
+      };
 
       throw new HttpException(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
