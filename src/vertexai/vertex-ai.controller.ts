@@ -16,7 +16,8 @@ import {
   SimplePromptDto,
   AIResponseDto,
   StructuredPromptDto, 
-  StructuredResponseDto
+  StructuredResponseDto,
+  SimpleStructuredResponseDto
 } from './dto';
 
 /**
@@ -210,6 +211,13 @@ export class VertexAIController {
 
   @Post('prompt')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @ApiBody({ type: SimplePromptDto, examples: {
+    simple: {
+      value: {
+        prompt: 'Explain the significance of the James Webb Space Telescope',
+      }
+    }
+  }})
   async simplePrompt(
     @Body() promptDto: SimplePromptDto,
   ): Promise<AIResponseDto> {
@@ -255,6 +263,13 @@ export class VertexAIController {
 
   @Post('structured')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @ApiBody({ type: StructuredPromptDto, examples: {
+    detailed: {
+      value: {
+        prompt: 'Explain the theory of relativity',
+      }
+    }
+  }})
   async structuredPrompt(
     @Body() promptDto: StructuredPromptDto,
   ): Promise<StructuredResponseDto> {
@@ -319,6 +334,77 @@ export class VertexAIController {
       };
 
       throw new HttpException(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post('structured-simple')
+  @ApiOperation({ summary: 'Generate structured content with simplified JSON response format' })
+  @ApiBody({ type: StructuredPromptDto, examples: {
+    simple: {
+      value: {
+        prompt: 'Explain the theory of relativity',
+      }
+    }
+  }})
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Structured content generated successfully with simplified format',
+    schema: {
+      type: 'object',
+      properties: {
+        answer: { type: 'string', description: 'The generated response' },
+        related_articles: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              title: { type: 'string' },
+              year: { type: 'number' },
+              authors: { type: 'array', items: { type: 'string' } },
+              tags: { type: 'array', items: { type: 'string' } }
+            }
+          }
+        },
+        relationship_graph: {
+          type: 'object',
+          properties: {
+            nodes: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', description: 'Article title' },
+                  is_central_node: { type: 'boolean' }
+                }
+              }
+            },
+            edges: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  source: { type: 'string', description: 'Central node title' },
+                  target: { type: 'string', description: 'Connected node title' }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  async structuredPromptSimple(
+    @Body() promptDto: StructuredPromptDto,
+  ): Promise<SimpleStructuredResponseDto> {
+    try {
+      const result = await this.vertexAIService.structuredPromptSimple(promptDto);
+      return result;
+    } catch (error) {
+      // En caso de error, retornar respuesta mock con mensaje de error
+      return SimpleStructuredResponseDto.createMockResponse(
+        error.message || 'Error al generar contenido estructurado'
+      );
     }
   }
 }

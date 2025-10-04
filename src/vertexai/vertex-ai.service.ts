@@ -7,6 +7,7 @@ import {
   AIResponseDto,
   StructuredPromptDto,
   StructuredResponseDto,
+  SimpleStructuredResponseDto,
   ResponseFormat,
   ContentType,
   StructuredContent
@@ -442,5 +443,138 @@ export class VertexAIService {
     if (hasCode) quality += 0.1;
 
     return Math.min(1.0, Math.max(0.0, quality));
+  }
+
+  /**
+   * Generates simple structured content using AI with scientific template
+   * Uses VERTEXAI_MESSAGE_TEMPLATE from environment variables
+   * Returns JSON with answer, related_articles, and relationship_graph
+   */
+  async structuredPromptSimple(promptDto: StructuredPromptDto): Promise<SimpleStructuredResponseDto> {
+    const startTime = Date.now();
+    const requestId = `struct_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    
+    try {
+      this.logger.log(`[${requestId}] Processing simple structured prompt: ${promptDto.prompt.substring(0, 100)}...`);
+
+      const model = 'gemini-2.5-flash-lite';
+      const temperature = promptDto.temperature || 0.3; // Lower temperature for more consistent JSON
+      const maxTokens = promptDto.maxTokens || 4096; // Higher token limit for complete responses
+
+      // Construir prompt usando el template del .env
+      const enhancedPrompt = this.buildScientificStructuredPrompt(promptDto.prompt);
+
+      const generativeModel = this.vertexAI.preview.getGenerativeModel({
+        model: model,
+        generationConfig: {
+          temperature,
+          maxOutputTokens: maxTokens,
+          topP: 0.8,
+          topK: 40,
+        },
+      });
+
+      // Generar contenido
+      const result = await generativeModel.generateContent(enhancedPrompt);
+      const response = await result.response;
+      const rawResponse = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+      const endTime = Date.now();
+      const processingTime = `${endTime - startTime}ms`;
+
+      this.logger.log(`[${requestId}] Scientific structured content generated successfully in ${processingTime}`);
+
+      // Intentar parsear la respuesta JSON del modelo
+      try {
+        const jsonResponse = this.extractAndParseJSON(rawResponse);
+        
+        // Validar que tenga la estructura requerida
+        if (jsonResponse && jsonResponse.answer && jsonResponse.related_articles && jsonResponse.relationship_graph) {
+          return {
+            answer: jsonResponse.answer,
+            related_articles: jsonResponse.related_articles,
+            relationship_graph: jsonResponse.relationship_graph
+          };
+        } else {
+          throw new Error('Invalid JSON structure received from model');
+        }
+      } catch (parseError) {
+        this.logger.warn(`[${requestId}] Could not parse JSON response, using fallback: ${parseError.message}`);
+        
+        // Fallback: retornar respuesta mock con el contenido generado
+        return SimpleStructuredResponseDto.createMockResponse(rawResponse.trim());
+      }
+
+    } catch (error) {
+      this.logger.error(`[${requestId}] Error generating scientific structured content:`, error);
+      
+      // Retornar respuesta de error usando el método estático
+      return SimpleStructuredResponseDto.createMockResponse(
+        'Error al generar contenido científico. Por favor, intenta nuevamente.'
+      );
+    }
+  }
+
+  /**
+   * Construye un prompt usando el template científico del .env
+   * Reemplaza {user_query} con la consulta del usuario
+   */
+  private buildScientificStructuredPrompt(userQuery: string): string {
+    // Obtener el template del .env
+    const template = process.env.VERTEXAI_MESSAGE_TEMPLATE || '';
+    
+    if (!template) {
+      this.logger.warn('VERTEXAI_MESSAGE_TEMPLATE not found in environment variables, using fallback');
+      return `Based on the following query, generate a JSON response with the exact structure: answer, related_articles, and relationship_graph.\n\nQuery: ${userQuery}`;
+    }
+
+    // Reemplazar {user_query} con la consulta actual
+    const enhancedPrompt = template.replace('{user_query}', userQuery);
+    
+    return enhancedPrompt;
+  }
+
+  /**
+   * Extrae y parsea JSON de una respuesta de texto
+   * Busca el primer bloque JSON válido en la respuesta
+   */
+  private extractAndParseJSON(text: string): any {
+    // Limpiar el texto
+    const cleanText = text.trim();
+    
+    // Intentar parsear directamente si parece ser JSON puro
+    if (cleanText.startsWith('{') && cleanText.endsWith('}')) {
+      try {
+        return JSON.parse(cleanText);
+      } catch (error) {
+        // Si falla, continuar con la búsqueda de bloques JSON
+      }
+    }
+
+    // Buscar bloques JSON en el texto (entre ```json y ``` o entre { y })
+    const jsonBlockRegex = /```json\s*([\s\S]*?)\s*```/g;
+    const jsonMatch = jsonBlockRegex.exec(cleanText);
+    
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[1].trim());
+      } catch (error) {
+        this.logger.warn('Failed to parse JSON from code block');
+      }
+    }
+
+    // Buscar el primer objeto JSON válido en el texto
+    const jsonObjectRegex = /\{[\s\S]*\}/;
+    const objectMatch = cleanText.match(jsonObjectRegex);
+    
+    if (objectMatch) {
+      try {
+        return JSON.parse(objectMatch[0]);
+      } catch (error) {
+        this.logger.warn('Failed to parse JSON object from text');
+      }
+    }
+
+    throw new Error('No valid JSON found in response');
   }
 }
