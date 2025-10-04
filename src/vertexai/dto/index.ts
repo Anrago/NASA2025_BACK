@@ -5,3 +5,4 @@ export * from './ai-response.dto';
 export * from './structured-prompt.dto';
 export * from './structured-response.dto';
 export * from './simple-structured-response.dto';
+export * from './title-generation.dto';

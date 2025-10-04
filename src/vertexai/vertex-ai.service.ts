@@ -577,4 +577,114 @@ export class VertexAIService {
 
     throw new Error('No valid JSON found in response');
   }
+
+  /**
+   * Generates a title based on a previously generated response
+   * Uses AI to create a concise, relevant title for the given content
+   */
+  async generateTitle(response: string): Promise<string> {
+    const startTime = Date.now();
+    const requestId = `title_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    
+    try {
+      this.logger.log(`[${requestId}] Generating title for response: ${response.substring(0, 100)}...`);
+
+      const model = 'gemini-2.5-flash-lite';
+      const temperature = 0.3; // Low temperature for consistent, focused titles
+      const maxTokens = 100; // Short response for titles
+
+      // Build prompt for title generation
+      const titlePrompt = this.buildTitlePrompt(response);
+
+      const generativeModel = this.vertexAI.preview.getGenerativeModel({
+        model: model,
+        generationConfig: {
+          temperature,
+          maxOutputTokens: maxTokens,
+          topP: 0.8,
+          topK: 40,
+        },
+      });
+
+      // Generate title
+      const result = await generativeModel.generateContent(titlePrompt);
+      const aiResponse = await result.response;
+      const generatedTitle = aiResponse.candidates?.[0]?.content?.parts?.[0]?.text || 'Título no disponible';
+
+      const endTime = Date.now();
+      const processingTime = `${endTime - startTime}ms`;
+
+      this.logger.log(`[${requestId}] Title generated successfully in ${processingTime}`);
+
+      // Clean and format the title
+      return this.cleanTitle(generatedTitle);
+
+    } catch (error) {
+      this.logger.error(`[${requestId}] Error generating title:`, error);
+      
+      // Fallback: generate a basic title from the first few words
+      const fallbackTitle = this.generateFallbackTitle(response);
+      return fallbackTitle;
+    }
+  }
+
+  /**
+   * Builds a prompt specifically for title generation
+   */
+  private buildTitlePrompt(response: string): string {
+    const prompt = `Basándote en el siguiente contenido, genera un título conciso, descriptivo y atractivo que capture la esencia del tema principal. El título debe ser:
+
+- Máximo 10-12 palabras
+- Claro y específico
+- Sin comillas ni caracteres especiales innecesarios
+- En español
+- Profesional y académico cuando corresponda
+
+Contenido:
+${response}
+
+Genera SOLAMENTE el título, sin explicaciones adicionales:`;
+
+    return prompt;
+  }
+
+  /**
+   * Cleans and formats the generated title
+   */
+  private cleanTitle(title: string): string {
+    // Remove quotes, extra spaces, and newlines
+    let cleanedTitle = title
+      .replace(/^["']|["']$/g, '') // Remove quotes at start/end
+      .replace(/\n/g, ' ') // Replace newlines with spaces
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .trim();
+
+    // Capitalize first letter
+    if (cleanedTitle.length > 0) {
+      cleanedTitle = cleanedTitle.charAt(0).toUpperCase() + cleanedTitle.slice(1);
+    }
+
+    // Ensure it's not too long
+    if (cleanedTitle.length > 120) {
+      cleanedTitle = cleanedTitle.substring(0, 120).trim() + '...';
+    }
+
+    return cleanedTitle || 'Título Generado';
+  }
+
+  /**
+   * Generates a fallback title from the content when AI generation fails
+   */
+  private generateFallbackTitle(response: string): string {
+    // Take first meaningful words and create a basic title
+    const words = response
+      .split(' ')
+      .filter(word => word.length > 2) // Filter short words
+      .slice(0, 8) // Take first 8 words
+      .join(' ');
+
+    const fallbackTitle = words.charAt(0).toUpperCase() + words.slice(1);
+    
+    return fallbackTitle.length > 0 ? fallbackTitle : 'Resumen del Contenido';
+  }
 }

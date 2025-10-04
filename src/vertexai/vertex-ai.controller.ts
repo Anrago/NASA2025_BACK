@@ -17,7 +17,9 @@ import {
   AIResponseDto,
   StructuredPromptDto, 
   StructuredResponseDto,
-  SimpleStructuredResponseDto
+  SimpleStructuredResponseDto,
+  TitleGenerationDto,
+  TitleResponseDto
 } from './dto';
 
 /**
@@ -405,6 +407,72 @@ export class VertexAIController {
       return SimpleStructuredResponseDto.createMockResponse(
         error.message || 'Error al generar contenido estructurado'
       );
+    }
+  }
+
+  @Post('generate-title')
+  @ApiOperation({ 
+    summary: 'Generate a title for a previous response',
+    description: 'Creates a concise, descriptive title based on previously generated content. Useful for creating headlines or summaries of AI-generated responses.'
+  })
+  @ApiBody({ 
+    type: TitleGenerationDto,
+    description: 'The response content to generate a title for',
+    examples: {
+      photosynthesis: {
+        value: {
+          response: 'La fotosíntesis es un proceso biológico fundamental que permite a las plantas convertir la luz solar en energía química. Este proceso ocurre principalmente en los cloroplastos de las hojas y involucra la absorción de dióxido de carbono del aire y agua del suelo para producir glucosa y oxígeno. Durante la fotosíntesis, la energía lumínica se captura mediante moléculas de clorofila, que son responsables del color verde característico de las plantas.'
+        }
+      },
+      space: {
+        value: {
+          response: 'El telescopio espacial James Webb representa un avance revolucionario en la astronomía moderna. Con sus instrumentos de alta precisión y su espejo primario de 6.5 metros, puede observar galaxias que se formaron poco después del Big Bang. Sus capacidades infrarrojas le permiten penetrar nubes de polvo cósmico y revelar la formación de estrellas y planetas en regiones previamente ocultas del universo.'
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Title generated successfully',
+    type: TitleResponseDto,
+    examples: {
+      photosynthesis: {
+        summary: 'Title for photosynthesis content',
+        value: {
+          title: 'Fotosíntesis: El Proceso Vital de Conversión de Luz Solar en Energía'
+        }
+      },
+      space: {
+        summary: 'Title for space telescope content',
+        value: {
+          title: 'James Webb: Revolucionando la Astronomía con Observación Infrarroja'
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Invalid request data' 
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Internal server error' 
+  })
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  async generateTitle(
+    @Body() titleDto: TitleGenerationDto,
+  ): Promise<TitleResponseDto> {
+    try {
+      const title = await this.vertexAIService.generateTitle(titleDto.response);
+      return new TitleResponseDto(title);
+    } catch (error) {
+      const errorResponse = {
+        message: 'Error al generar título',
+        error: error.message || 'Error interno del servidor',
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      };
+
+      throw new HttpException(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }
