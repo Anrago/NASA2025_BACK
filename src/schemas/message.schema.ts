@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { ApiProperty } from '@nestjs/swagger';
+import { articles } from './articles.schema';
 
 export type MessageDocument = HydratedDocument<Message>;
 
@@ -55,6 +56,13 @@ export class Message {
     example: '2025-10-04T12:00:00.000Z',
   })
   updatedAt: Date;
+
+  @ApiProperty({
+    description: 'Articles associated with the message',
+    type: [articles],
+  })
+  @Prop({ type: [Object], default: [] })
+  articles: articles[];
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);
