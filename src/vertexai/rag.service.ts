@@ -105,6 +105,8 @@ export class RagService {
     const client = await this.authClient.getClient();
     const accessToken = (await client.getAccessToken()).token;
 
+    this.logger.debug('RAG structured user prompt:', userPrompt);
+
     if (!accessToken) {
       throw new Error('Failed to get access token via ADC');
     }
@@ -113,7 +115,8 @@ export class RagService {
     const prompt = process.env.VERTEXAI_MESSAGE_TEMPLATE || '';
 
     if (prompt) {
-      userPrompt = prompt.replace('{user_prompt}', userPrompt);
+      userPrompt = prompt.replace('{user_query}', userPrompt);
+      this.logger.debug('RAG structured final prompt:', userPrompt);
     }
 
     const body = {
@@ -122,9 +125,13 @@ export class RagService {
         retrieval: {
           vertex_rag_store: {
             rag_resources: { rag_corpus: this.ragCorpusPath },
-            similarity_top_k: 6,
+            similarity_top_k: 20,
           },
         },
+      },
+      generationConfig: {
+        topP: 0.95,
+        temperature: 1.0,
       },
     };
 
