@@ -242,14 +242,19 @@ export class RagService {
     }
 
     // Look for JSON blocks in the text (between ```json and ``` or between { and })
-    const jsonBlockRegex = /```json\s*([\s\S]*?)\s*```/g;
-    const jsonMatch = jsonBlockRegex.exec(cleanText);
+    const jsonBlockRegex = /```json\s*([\s\S]*?)\s*```/;
+    const jsonMatch = cleanText.match(jsonBlockRegex);
 
     if (jsonMatch) {
       try {
-        return JSON.parse(jsonMatch[1].trim());
+        this.logger.log('Found JSON code block, attempting to parse');
+        const jsonContent = jsonMatch[1].trim();
+        this.logger.log('JSON content length:', jsonContent.length);
+        this.logger.log('JSON content start:', jsonContent.substring(0, 100));
+        return JSON.parse(jsonContent);
       } catch (error) {
-        this.logger.warn('Failed to parse JSON from code block');
+        this.logger.warn('Failed to parse JSON from code block:', error.message);
+        this.logger.warn('JSON content preview:', jsonMatch[1].substring(0, 200));
       }
     }
 
@@ -266,5 +271,96 @@ export class RagService {
     }
 
     throw new Error('No valid JSON found in RAG response');
+  }
+
+  /**
+   * Retrieves bulk articles using RAG - up to 100 articles without filtering
+   */
+  async getBulkArticles(): Promise<any> {
+    const client = await this.authClient.getClient();
+    const accessToken = (await client.getAccessToken()).token;
+
+    if (!accessToken) {
+      throw new Error('Failed to get access token via ADC');
+    }
+
+    const url = `https://${this.location}-aiplatform.googleapis.com/v1beta1/projects/${this.projectId}/locations/${this.location}/publishers/google/models/${this.model}:generateContent`;
+
+    // Use the new bulk articles template
+    const bulkTemplate = process.env.RAG_BULK_ARTICLES_TEMPLATE || '';
+    
+    const body = {
+      contents: [{ role: 'user', parts: [{ text: bulkTemplate }] }],
+      tools: {
+        retrieval: {
+          vertex_rag_store: {
+            rag_resources: { rag_corpus: this.ragCorpusPath },
+            similarity_top_k: 50, // Reduced to avoid token limit issues
+          },
+        },
+      },
+      generationConfig: {
+        topP: 0.9,
+        temperature: 0.2, // Slightly higher for more variety in extraction
+        maxOutputTokens: 8192, // Adjusted output token limit
+      },
+    };
+
+    try {
+      const response = await axios.post(url, body, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      this.logger.debug('Full bulk articles response:', JSON.stringify(response.data, null, 2));
+
+      let responseText = '';
+      if (response.data.candidates && response.data.candidates.length > 0) {
+        const candidate = response.data.candidates[0];
+        if (candidate.content && candidate.content.parts) {
+          responseText = candidate.content.parts.map((p: any) => p.text).join('');
+        }
+      }
+
+      if (!responseText) {
+        this.logger.error('No response text found in bulk articles request');
+        throw new Error('No response text found in bulk articles request');
+      }
+
+      this.logger.log('Bulk articles response text length:', responseText.length);
+      this.logger.log('Response preview:', responseText.substring(0, 500));
+
+      // Parse the JSON response
+      try {
+        const parsedResponse = this.extractAndParseJSON(responseText);
+        
+        if (parsedResponse && parsedResponse.articles && Array.isArray(parsedResponse.articles)) {
+          this.logger.log(`Successfully retrieved ${parsedResponse.articles.length} articles`);
+          return parsedResponse;
+        } else {
+          this.logger.warn('Invalid bulk articles response structure');
+          return {
+            articles: []
+          };
+        }
+      } catch (parseError) {
+        this.logger.error('Failed to parse bulk articles JSON:', parseError.message);
+        return {
+          articles: []
+        };
+      }
+
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        this.logger.error('Bulk articles API error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+        });
+        throw new Error(`Bulk articles API request failed: ${error.response?.status}`);
+      }
+      throw error;
+    }
   }
 }

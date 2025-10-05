@@ -9,3 +9,4 @@ export * from './title-generation.dto';
 export * from './chat-message.dto';
 export * from './chat-response.dto';
 export * from './rag-structured-response.dto';
+export * from './bulk-articles-response.dto';

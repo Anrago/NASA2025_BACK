@@ -26,6 +26,7 @@ import {
   ChatMessageDto,
   ChatResponseDto,
   RagStructuredResponseDto,
+  BulkArticlesResponseDto,
 } from './dto';
 
 /**
@@ -680,6 +681,49 @@ export class VertexAIController {
         {
           success: false,
           error: error.message || 'Structured RAG generation failed',
+          timestamp: new Date().toISOString(),
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Get bulk articles from RAG corpus
+   * Retrieves up to 100 articles from the RAG database without filtering
+   */
+  @Get('rag/articles/bulk')
+  @ApiOperation({
+    summary: 'Get bulk articles from RAG corpus',
+    description:
+      'Retrieves up to 100 articles from the RAG database without discrimination or filtering. Returns articles with title, year, authors, and tags.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bulk articles retrieved successfully',
+    type: BulkArticlesResponseDto,
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        error: { type: 'string' },
+        timestamp: { type: 'string' },
+      },
+    },
+  })
+  async getBulkArticles(): Promise<BulkArticlesResponseDto> {
+    try {
+      const result = await this.ragService.getBulkArticles();
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          error: error.message || 'Bulk articles retrieval failed',
           timestamp: new Date().toISOString(),
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
