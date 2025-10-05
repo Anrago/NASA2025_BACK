@@ -25,6 +25,7 @@ import {
   TitleResponseDto,
   ChatMessageDto,
   ChatResponseDto,
+  RagStructuredResponseDto,
 } from './dto';
 
 /**
@@ -656,10 +657,20 @@ export class VertexAIController {
             },
           },
         },
+        research_gaps: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              topic: { type: 'string', description: 'Name of the underexplored area' },
+              description: { type: 'string', description: 'Short explanation of the knowledge gap' },
+            },
+          },
+        },
       },
     },
   })
-  async generateStructuredWithRag(@Body('prompt') prompt: string) {
+  async generateStructuredWithRag(@Body('prompt') prompt: string): Promise<RagStructuredResponseDto> {
     try {
       const result =
         await this.ragService.generateStructuredWithRetrieval(prompt);

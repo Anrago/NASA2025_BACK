@@ -177,7 +177,8 @@ export class RagService {
           parsedResponse &&
           parsedResponse.answer &&
           parsedResponse.related_articles &&
-          parsedResponse.relationship_graph
+          parsedResponse.relationship_graph &&
+          parsedResponse.research_gaps
         ) {
           return parsedResponse;
         } else {
@@ -186,6 +187,7 @@ export class RagService {
             answer: responseText,
             related_articles: [],
             relationship_graph: { nodes: [], links: [] },
+            research_gaps: [],
           };
         }
       } catch (parseError) {
@@ -196,6 +198,7 @@ export class RagService {
           answer: responseText,
           related_articles: [],
           relationship_graph: { nodes: [], links: [] },
+          research_gaps: [],
         };
       }
     } catch (error) {
