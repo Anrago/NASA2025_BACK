@@ -738,7 +738,7 @@ Make the response scientifically accurate and include a meaningful relationship 
 - Máximo 10-12 palabras
 - Claro y específico
 - Sin comillas ni caracteres especiales innecesarios
-- En español
+- En ingles
 - Profesional y académico cuando corresponda
 
 Contenido:

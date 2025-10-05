@@ -7,7 +7,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class TitleGenerationDto {
   @ApiProperty({
     description: 'The previously generated response/content to create a title for',
-    example: 'La fotosíntesis es un proceso biológico fundamental que permite a las plantas convertir la luz solar en energía química. Este proceso ocurre principalmente en los cloroplastos de las hojas y involucra la absorción de dióxido de carbono del aire y agua del suelo para producir glucosa y oxígeno.',
+    example: 'The photosynthesis is a fundamental biological process that allows plants to convert sunlight into chemical energy. This process primarily occurs in the chloroplasts of leaves and involves the absorption of carbon dioxide from the air and water from the soil to produce glucose and oxygen.',
     maxLength: 5000,
   })
   @IsString()
@@ -22,7 +22,7 @@ export class TitleGenerationDto {
 export class TitleResponseDto {
   @ApiProperty({
     description: 'The generated title for the provided response',
-    example: 'Fotosíntesis: El Proceso Vital de Conversión de Luz Solar en Energía'
+    example: 'Photosynthesis: The Vital Process of Converting Sunlight into Energy',
   })
   title: string;
 
