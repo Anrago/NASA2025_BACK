@@ -11,16 +11,20 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { VertexAIService } from './vertex-ai.service';
 import { RagService } from './rag.service';
+import { MessagesService } from '../messages/messages.service';
+import { HistoricalService } from '../historical/historical.service';
 import {
   VertexAIRequestDto,
   VertexAIResponseDto,
   SimplePromptDto,
   AIResponseDto,
-  StructuredPromptDto, 
+  StructuredPromptDto,
   StructuredResponseDto,
   SimpleStructuredResponseDto,
   TitleGenerationDto,
-  TitleResponseDto
+  TitleResponseDto,
+  ChatMessageDto,
+  ChatResponseDto,
 } from './dto';
 
 /**
@@ -33,6 +37,8 @@ export class VertexAIController {
   constructor(
     private readonly vertexAIService: VertexAIService,
     private readonly ragService: RagService,
+    private readonly messagesService: MessagesService,
+    private readonly historicalService: HistoricalService,
   ) {}
 
   /**
@@ -217,13 +223,16 @@ export class VertexAIController {
 
   @Post('prompt')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-  @ApiBody({ type: SimplePromptDto, examples: {
-    simple: {
-      value: {
-        prompt: 'Explain the significance of the James Webb Space Telescope',
-      }
-    }
-  }})
+  @ApiBody({
+    type: SimplePromptDto,
+    examples: {
+      simple: {
+        value: {
+          prompt: 'Explain the significance of the James Webb Space Telescope',
+        },
+      },
+    },
+  })
   async simplePrompt(
     @Body() promptDto: SimplePromptDto,
   ): Promise<AIResponseDto> {
@@ -269,19 +278,22 @@ export class VertexAIController {
 
   @Post('structured')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
-  @ApiBody({ type: StructuredPromptDto, examples: {
-    detailed: {
-      value: {
-        prompt: 'Explain the theory of relativity',
-      }
-    }
-  }})
+  @ApiBody({
+    type: StructuredPromptDto,
+    examples: {
+      detailed: {
+        value: {
+          prompt: 'Explain the theory of relativity',
+        },
+      },
+    },
+  })
   async structuredPrompt(
     @Body() promptDto: StructuredPromptDto,
   ): Promise<StructuredResponseDto> {
     try {
       const result = await this.vertexAIService.structuredPrompt(promptDto);
-      
+
       if (!result.success && result.error) {
         throw new HttpException(
           {
@@ -334,7 +346,7 @@ export class VertexAIController {
           suggestions: [
             'Verifica que todos los campos requeridos estén presentes',
             'Revisa el formato del prompt',
-            'Intenta con parámetros diferentes'
+            'Intenta con parámetros diferentes',
           ],
         },
       };
@@ -344,17 +356,23 @@ export class VertexAIController {
   }
 
   @Post('structured-simple')
-  @ApiOperation({ summary: 'Generate structured content with simplified JSON response format' })
-  @ApiBody({ type: StructuredPromptDto, examples: {
-    simple: {
-      value: {
-        prompt: 'Explain the theory of relativity',
-      }
-    }
-  }})
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Structured content generated successfully with simplified format',
+  @ApiOperation({
+    summary: 'Generate structured content with simplified JSON response format',
+  })
+  @ApiBody({
+    type: StructuredPromptDto,
+    examples: {
+      simple: {
+        value: {
+          prompt: 'Explain the theory of relativity',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Structured content generated successfully with simplified format',
     schema: {
       type: 'object',
       properties: {
@@ -367,9 +385,9 @@ export class VertexAIController {
               title: { type: 'string' },
               year: { type: 'number' },
               authors: { type: 'array', items: { type: 'string' } },
-              tags: { type: 'array', items: { type: 'string' } }
-            }
-          }
+              tags: { type: 'array', items: { type: 'string' } },
+            },
+          },
         },
         relationship_graph: {
           type: 'object',
@@ -379,11 +397,20 @@ export class VertexAIController {
               items: {
                 type: 'object',
                 properties: {
-                  id: { type: 'string', description: 'Unique identifier in kebab-case' },
-                  name: { type: 'string', description: 'Display name for the node' },
-                  group: { type: 'string', description: 'Category or group name' }
-                }
-              }
+                  id: {
+                    type: 'string',
+                    description: 'Unique identifier in kebab-case',
+                  },
+                  name: {
+                    type: 'string',
+                    description: 'Display name for the node',
+                  },
+                  group: {
+                    type: 'string',
+                    description: 'Category or group name',
+                  },
+                },
+              },
             },
             links: {
               type: 'array',
@@ -392,77 +419,86 @@ export class VertexAIController {
                 properties: {
                   source: { type: 'string', description: 'Source node ID' },
                   target: { type: 'string', description: 'Target node ID' },
-                  value: { type: 'number', description: 'Connection strength (1-5)' }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                  value: {
+                    type: 'number',
+                    description: 'Connection strength (1-5)',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   })
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async structuredPromptSimple(
     @Body() promptDto: StructuredPromptDto,
   ): Promise<SimpleStructuredResponseDto> {
     try {
-      const result = await this.vertexAIService.structuredPromptSimple(promptDto);
+      const result =
+        await this.vertexAIService.structuredPromptSimple(promptDto);
       return result;
     } catch (error) {
       // En caso de error, retornar respuesta mock con mensaje de error
       return SimpleStructuredResponseDto.createMockResponse(
-        error.message || 'Error al generar contenido estructurado'
+        error.message || 'Error al generar contenido estructurado',
       );
     }
   }
 
   @Post('generate-title')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Generate a title for a previous response',
-    description: 'Creates a concise, descriptive title based on previously generated content. Useful for creating headlines or summaries of AI-generated responses.'
+    description:
+      'Creates a concise, descriptive title based on previously generated content. Useful for creating headlines or summaries of AI-generated responses.',
   })
-  @ApiBody({ 
+  @ApiBody({
     type: TitleGenerationDto,
     description: 'The response content to generate a title for',
     examples: {
       photosynthesis: {
         value: {
-          response: 'La fotosíntesis es un proceso biológico fundamental que permite a las plantas convertir la luz solar en energía química. Este proceso ocurre principalmente en los cloroplastos de las hojas y involucra la absorción de dióxido de carbono del aire y agua del suelo para producir glucosa y oxígeno. Durante la fotosíntesis, la energía lumínica se captura mediante moléculas de clorofila, que son responsables del color verde característico de las plantas.'
-        }
+          response:
+            'La fotosíntesis es un proceso biológico fundamental que permite a las plantas convertir la luz solar en energía química. Este proceso ocurre principalmente en los cloroplastos de las hojas y involucra la absorción de dióxido de carbono del aire y agua del suelo para producir glucosa y oxígeno. Durante la fotosíntesis, la energía lumínica se captura mediante moléculas de clorofila, que son responsables del color verde característico de las plantas.',
+        },
       },
       space: {
         value: {
-          response: 'El telescopio espacial James Webb representa un avance revolucionario en la astronomía moderna. Con sus instrumentos de alta precisión y su espejo primario de 6.5 metros, puede observar galaxias que se formaron poco después del Big Bang. Sus capacidades infrarrojas le permiten penetrar nubes de polvo cósmico y revelar la formación de estrellas y planetas en regiones previamente ocultas del universo.'
-        }
-      }
-    }
+          response:
+            'El telescopio espacial James Webb representa un avance revolucionario en la astronomía moderna. Con sus instrumentos de alta precisión y su espejo primario de 6.5 metros, puede observar galaxias que se formaron poco después del Big Bang. Sus capacidades infrarrojas le permiten penetrar nubes de polvo cósmico y revelar la formación de estrellas y planetas en regiones previamente ocultas del universo.',
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Title generated successfully',
     type: TitleResponseDto,
     examples: {
       photosynthesis: {
         summary: 'Title for photosynthesis content',
         value: {
-          title: 'Fotosíntesis: El Proceso Vital de Conversión de Luz Solar en Energía'
-        }
+          title:
+            'Fotosíntesis: El Proceso Vital de Conversión de Luz Solar en Energía',
+        },
       },
       space: {
         summary: 'Title for space telescope content',
         value: {
-          title: 'James Webb: Revolucionando la Astronomía con Observación Infrarroja'
-        }
-      }
-    }
+          title:
+            'James Webb: Revolucionando la Astronomía con Observación Infrarroja',
+        },
+      },
+    },
   })
-  @ApiResponse({ 
-    status: 400, 
-    description: 'Invalid request data' 
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request data',
   })
-  @ApiResponse({ 
-    status: 500, 
-    description: 'Internal server error' 
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
   })
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async generateTitle(
@@ -490,21 +526,27 @@ export class VertexAIController {
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   @ApiOperation({
     summary: 'Generate content with RAG (Retrieval Augmented Generation)',
-    description: 'Generates AI content using RAG with Google VertexAI, retrieving relevant information from configured corpus before generating response.'
+    description:
+      'Generates AI content using RAG with Google VertexAI, retrieving relevant information from configured corpus before generating response.',
   })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        prompt: { type: 'string', description: 'The user prompt for RAG generation' }
+        prompt: {
+          type: 'string',
+          description: 'The user prompt for RAG generation',
+        },
       },
-      required: ['prompt']
+      required: ['prompt'],
     },
     examples: {
       simple: {
-        value: { prompt: 'What are the latest findings about Mars exploration?' }
-      }
-    }
+        value: {
+          prompt: 'What are the latest findings about Mars exploration?',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 200,
@@ -514,9 +556,9 @@ export class VertexAIController {
       properties: {
         success: { type: 'boolean' },
         content: { type: 'string' },
-        timestamp: { type: 'string' }
-      }
-    }
+        timestamp: { type: 'string' },
+      },
+    },
   })
   async generateWithRag(@Body('prompt') prompt: string) {
     try {
@@ -524,16 +566,16 @@ export class VertexAIController {
       return {
         success: true,
         content,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       throw new HttpException(
         {
           success: false,
           error: error.message || 'RAG generation failed',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
@@ -546,21 +588,27 @@ export class VertexAIController {
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   @ApiOperation({
     summary: 'Generate structured content with RAG',
-    description: 'Generates structured JSON content using RAG with answer, related articles, and relationship graph.'
+    description:
+      'Generates structured JSON content using RAG with answer, related articles, and relationship graph.',
   })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
-        prompt: { type: 'string', description: 'The user prompt for structured RAG generation' }
+        prompt: {
+          type: 'string',
+          description: 'The user prompt for structured RAG generation',
+        },
       },
-      required: ['prompt']
+      required: ['prompt'],
     },
     examples: {
       structured: {
-        value: { prompt: 'Explain the impact of climate change on space missions' }
-      }
-    }
+        value: {
+          prompt: 'Explain the impact of climate change on space missions',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 200,
@@ -577,9 +625,9 @@ export class VertexAIController {
               title: { type: 'string' },
               year: { type: 'number' },
               authors: { type: 'array', items: { type: 'string' } },
-              tags: { type: 'array', items: { type: 'string' } }
-            }
-          }
+              tags: { type: 'array', items: { type: 'string' } },
+            },
+          },
         },
         relationship_graph: {
           type: 'object',
@@ -591,9 +639,9 @@ export class VertexAIController {
                 properties: {
                   id: { type: 'string' },
                   name: { type: 'string' },
-                  group: { type: 'string' }
-                }
-              }
+                  group: { type: 'string' },
+                },
+              },
             },
             links: {
               type: 'array',
@@ -602,28 +650,111 @@ export class VertexAIController {
                 properties: {
                   source: { type: 'string' },
                   target: { type: 'string' },
-                  value: { type: 'number' }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                  value: { type: 'number' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   })
   async generateStructuredWithRag(@Body('prompt') prompt: string) {
     try {
-      const result = await this.ragService.generateStructuredWithRetrieval(prompt);
+      const result =
+        await this.ragService.generateStructuredWithRetrieval(prompt);
       return result;
     } catch (error) {
       throw new HttpException(
         {
           success: false,
           error: error.message || 'Structured RAG generation failed',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
-        HttpStatus.INTERNAL_SERVER_ERROR
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
+    }
+  }
+
+  @Post('chat')
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @ApiOperation({
+    summary: 'Send chat message with history management',
+    description:
+      'Sends a message to the AI, manages conversation history, and returns the response. ' +
+      'Automatically creates or updates chat history and stores both user and system messages.',
+  })
+  @ApiBody({
+    type: ChatMessageDto,
+    description: 'Chat message with user and history information',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Chat message processed successfully',
+    type: ChatResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error during chat processing',
+  })
+  async sendChatMessage(
+    @Body() chatMessageDto: ChatMessageDto,
+  ): Promise<ChatResponseDto> {
+    try {
+      // Get AI response using existing service
+      const aiResponse = await this.vertexAIService.structuredPromptSimple({
+        prompt: chatMessageDto.message,
+        temperature: 0.7,
+        maxTokens: 2048,
+      });
+
+      // Create or get historical record
+      let historical;
+      if (chatMessageDto.historical_id) {
+        // Get existing historical record
+        historical = await this.historicalService.findOne(
+          chatMessageDto.historical_id,
+        );
+      } else {
+        // Create new historical record
+        historical = await this.historicalService.create({
+          user_id: chatMessageDto.user_id,
+          title: await this.vertexAIService.generateTitle(aiResponse.answer),
+        });
+      }
+
+      // Create user message record
+      await this.messagesService.create({
+        historical_user_id: historical._id.toString(),
+        rol: 'User',
+        message: chatMessageDto.message,
+      });
+
+      // Create AI response message record
+      await this.messagesService.create({
+        historical_user_id: historical._id.toString(),
+        rol: 'System',
+        message: aiResponse.answer,
+      });
+
+      return {
+        success: true,
+        historical_id: historical._id.toString(),
+        response: aiResponse,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        historical_id: null,
+        response: null,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      };
     }
   }
 }

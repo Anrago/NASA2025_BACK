@@ -6,3 +6,5 @@ export * from './structured-prompt.dto';
 export * from './structured-response.dto';
 export * from './simple-structured-response.dto';
 export * from './title-generation.dto';
+export * from './chat-message.dto';
+export * from './chat-response.dto';

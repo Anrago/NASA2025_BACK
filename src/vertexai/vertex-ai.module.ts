@@ -3,6 +3,8 @@ import { VertexAIController } from './vertex-ai.controller';
 import { VertexAIService } from './vertex-ai.service';
 import { ContentProcessorService } from './content-processor.service';
 import { RagService } from './rag.service';
+import { MessagesModule } from '../messages/messages.module';
+import { HistoricalModule } from '../historical/historical.module';
 
 /**
  * Module for Google Cloud VertexAI integration
@@ -11,6 +13,7 @@ import { RagService } from './rag.service';
  * Gemini models through the VertexAI API. It includes endpoints for:
  * - Generating text content based on prompts
  * - Checking service health and connectivity
+ * - Managing chat conversations with history
  *
  * @remarks
  * Requires proper Google Cloud authentication and VertexAI API to be enabled
@@ -22,6 +25,7 @@ import { RagService } from './rag.service';
  * - GOOGLE_APPLICATION_CREDENTIALS: Path to service account JSON key file
  */
 @Module({
+  imports: [MessagesModule, HistoricalModule],
   controllers: [VertexAIController],
   providers: [VertexAIService, ContentProcessorService, RagService],
   exports: [VertexAIService, ContentProcessorService, RagService],
