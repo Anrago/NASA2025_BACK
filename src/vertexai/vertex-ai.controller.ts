@@ -663,15 +663,23 @@ export class VertexAIController {
           items: {
             type: 'object',
             properties: {
-              topic: { type: 'string', description: 'Name of the underexplored area' },
-              description: { type: 'string', description: 'Short explanation of the knowledge gap' },
+              topic: {
+                type: 'string',
+                description: 'Name of the underexplored area',
+              },
+              description: {
+                type: 'string',
+                description: 'Short explanation of the knowledge gap',
+              },
             },
           },
         },
       },
     },
   })
-  async generateStructuredWithRag(@Body('prompt') prompt: string): Promise<RagStructuredResponseDto> {
+  async generateStructuredWithRag(
+    @Body('prompt') prompt: string,
+  ): Promise<RagStructuredResponseDto> {
     try {
       const result =
         await this.ragService.generateStructuredWithRetrieval(prompt);
@@ -761,11 +769,19 @@ export class VertexAIController {
   ): Promise<ChatResponseDto> {
     try {
       // Get AI response using existing service
-      const aiResponse = await this.vertexAIService.structuredPromptSimple({
-        prompt: chatMessageDto.message,
-        temperature: 0.7,
-        maxTokens: 2048,
-      });
+      // Get AI response using RAG service
+      const aiResponse = await this.ragService.generateStructuredWithRetrieval(
+        chatMessageDto.message,
+      );
+
+      console.log(
+        '🔥 CONTROLLER - AI Response received:',
+        JSON.stringify(aiResponse, null, 2),
+      );
+      console.log(
+        '🔥 CONTROLLER - relationship_graph:',
+        aiResponse.relationship_graph,
+      );
 
       // Create or get historical record
       let historical;
@@ -789,19 +805,29 @@ export class VertexAIController {
         message: chatMessageDto.message,
       });
 
-      // Create AI response message record
+      // Create AI response message record with complete data
       await this.messagesService.create({
         historical_user_id: historical._id.toString(),
         rol: 'System',
         message: aiResponse.answer,
+        related_articles: aiResponse.related_articles || [],
+        relationship_graph: aiResponse.relationship_graph || null,
+        research_gaps: aiResponse.research_gaps || [],
       });
 
-      return {
+      const responsePayload = {
         success: true,
         historical_id: historical._id.toString(),
         response: aiResponse,
         timestamp: new Date().toISOString(),
       };
+
+      console.log(
+        '🚀 CONTROLLER - Sending response:',
+        JSON.stringify(responsePayload, null, 2),
+      );
+
+      return responsePayload;
     } catch (error) {
       return {
         success: false,

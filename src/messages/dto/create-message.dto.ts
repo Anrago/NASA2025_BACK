@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsEnum, IsMongoId } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsMongoId,
+  IsOptional,
+  IsArray,
+  IsObject,
+} from 'class-validator';
 import { MessageRole } from '../../schemas/message.schema';
 
 export class CreateMessageDto {
@@ -27,4 +34,33 @@ export class CreateMessageDto {
   })
   @IsString()
   message: string;
+
+  @ApiProperty({
+    description: 'Related articles from AI response (only for System messages)',
+    type: [Object],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  related_articles?: any[];
+
+  @ApiProperty({
+    description:
+      'Relationship graph from AI response (only for System messages)',
+    type: Object,
+    required: false,
+  })
+  @IsOptional()
+  @IsObject()
+  relationship_graph?: any;
+
+  @ApiProperty({
+    description:
+      'Research gaps from AI response (only for System messages with RAG)',
+    type: [Object],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  research_gaps?: any[];
 }

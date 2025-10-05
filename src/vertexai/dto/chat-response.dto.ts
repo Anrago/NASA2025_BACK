@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { SimpleStructuredResponseDto } from './simple-structured-response.dto';
+import { RagStructuredResponseDto } from './rag-structured-response.dto';
 
 export class ChatResponseDto {
   @ApiProperty({
@@ -15,10 +15,10 @@ export class ChatResponseDto {
   historical_id: string | null;
 
   @ApiProperty({
-    description: 'The complete AI response including structured data',
-    type: SimpleStructuredResponseDto,
+    description: 'The complete AI response including structured data with RAG',
+    type: RagStructuredResponseDto,
   })
-  response: SimpleStructuredResponseDto | null;
+  response: RagStructuredResponseDto | null;
 
   @ApiProperty({
     description: 'Error message if processing failed',

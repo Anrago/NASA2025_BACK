@@ -16,6 +16,12 @@ export interface RagGraphNode {
   id: string;
   name: string;
   group: string;
+  title?: string;
+  year?: number;
+  authors?: string[];
+  summary?: string;
+  doi?: string;
+  type?: 'article' | 'gap';
 }
 
 export interface RagGraphLink {
@@ -32,7 +38,7 @@ export interface RagGraphData {
 export class RagStructuredResponseDto {
   @ApiProperty({
     description: 'The generated comprehensive answer',
-    example: 'La fotosíntesis es un proceso biológico fundamental...'
+    example: 'La fotosíntesis es un proceso biológico fundamental...',
   })
   answer: string;
 
@@ -42,17 +48,29 @@ export class RagStructuredResponseDto {
     items: {
       type: 'object',
       properties: {
-        title: { type: 'string', example: 'Photosynthesis in Space Environments' },
+        title: {
+          type: 'string',
+          example: 'Photosynthesis in Space Environments',
+        },
         year: { type: 'number', example: 2023 },
-        authors: { type: 'array', items: { type: 'string' }, example: ['Smith, J.', 'Johnson, A.'] },
-        tags: { type: 'array', items: { type: 'string' }, example: ['photosynthesis', 'space', 'biology'] }
-      }
-    }
+        authors: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['Smith, J.', 'Johnson, A.'],
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          example: ['photosynthesis', 'space', 'biology'],
+        },
+      },
+    },
   })
   related_articles: RagStructuredArticle[];
 
   @ApiProperty({
-    description: 'Graph structure showing relationships between articles and concepts',
+    description:
+      'Graph structure showing relationships between articles and concepts',
     type: 'object',
     properties: {
       nodes: {
@@ -62,9 +80,9 @@ export class RagStructuredResponseDto {
           properties: {
             id: { type: 'string', example: 'space-photosynthesis' },
             name: { type: 'string', example: 'Photosynthesis in Space' },
-            group: { type: 'string', example: 'Biology' }
-          }
-        }
+            group: { type: 'string', example: 'Biology' },
+          },
+        },
       },
       links: {
         type: 'array',
@@ -73,11 +91,11 @@ export class RagStructuredResponseDto {
           properties: {
             source: { type: 'string', example: 'space-photosynthesis' },
             target: { type: 'string', example: 'plant-biology' },
-            value: { type: 'number', example: 3 }
-          }
-        }
-      }
-    }
+            value: { type: 'number', example: 3 },
+          },
+        },
+      },
+    },
   })
   relationship_graph: RagGraphData;
 
@@ -87,10 +105,17 @@ export class RagStructuredResponseDto {
     items: {
       type: 'object',
       properties: {
-        topic: { type: 'string', example: 'Long-term plant adaptation in microgravity' },
-        description: { type: 'string', example: 'Limited studies on how plants adapt to prolonged exposure to microgravity environments beyond 6 months' }
-      }
-    }
+        topic: {
+          type: 'string',
+          example: 'Long-term plant adaptation in microgravity',
+        },
+        description: {
+          type: 'string',
+          example:
+            'Limited studies on how plants adapt to prolonged exposure to microgravity environments beyond 6 months',
+        },
+      },
+    },
   })
   research_gaps: RagResearchGap[];
 
@@ -98,7 +123,7 @@ export class RagStructuredResponseDto {
     answer: string,
     related_articles: RagStructuredArticle[],
     relationship_graph: RagGraphData,
-    research_gaps: RagResearchGap[]
+    research_gaps: RagResearchGap[],
   ) {
     this.answer = answer;
     this.related_articles = related_articles;
@@ -109,82 +134,90 @@ export class RagStructuredResponseDto {
   static createMockResponse(answer: string): RagStructuredResponseDto {
     const mockArticles: RagStructuredArticle[] = [
       {
-        title: "Microgravity Effects on Plant Growth",
+        title: 'Microgravity Effects on Plant Growth',
         year: 2023,
-        authors: ["Martinez, L.", "Thompson, R."],
-        tags: ["microgravity", "plant biology", "space agriculture"]
+        authors: ['Martinez, L.', 'Thompson, R.'],
+        tags: ['microgravity', 'plant biology', 'space agriculture'],
       },
       {
-        title: "Space-Based Agricultural Systems",
+        title: 'Space-Based Agricultural Systems',
         year: 2024,
-        authors: ["Chen, W.", "Anderson, K."],
-        tags: ["agriculture", "space missions", "sustainability"]
+        authors: ['Chen, W.', 'Anderson, K.'],
+        tags: ['agriculture', 'space missions', 'sustainability'],
       },
       {
-        title: "Photosynthesis in Controlled Environments",
+        title: 'Photosynthesis in Controlled Environments',
         year: 2022,
-        authors: ["Brown, S.", "Wilson, M."],
-        tags: ["photosynthesis", "controlled environment", "LED lighting"]
-      }
+        authors: ['Brown, S.', 'Wilson, M.'],
+        tags: ['photosynthesis', 'controlled environment', 'LED lighting'],
+      },
     ];
 
     const mockGraph: RagGraphData = {
       nodes: [
         {
-          id: "microgravity-plants",
-          name: "Microgravity Effects on Plants",
-          group: "Space Biology"
+          id: 'microgravity-plants',
+          name: 'Microgravity Effects on Plants',
+          group: 'Space Biology',
         },
         {
-          id: "space-agriculture",
-          name: "Space-Based Agricultural Systems",
-          group: "Agriculture"
+          id: 'space-agriculture',
+          name: 'Space-Based Agricultural Systems',
+          group: 'Agriculture',
         },
         {
-          id: "controlled-photosynthesis",
-          name: "Photosynthesis in Controlled Environments",
-          group: "Plant Science"
+          id: 'controlled-photosynthesis',
+          name: 'Photosynthesis in Controlled Environments',
+          group: 'Plant Science',
         },
         {
-          id: "research-gap-adaptation",
-          name: "Long-term Plant Adaptation",
-          group: "Research Gap"
-        }
+          id: 'research-gap-adaptation',
+          name: 'Long-term Plant Adaptation',
+          group: 'Research Gap',
+        },
       ],
       links: [
         {
-          source: "microgravity-plants",
-          target: "space-agriculture",
-          value: 4
+          source: 'microgravity-plants',
+          target: 'space-agriculture',
+          value: 4,
         },
         {
-          source: "space-agriculture",
-          target: "controlled-photosynthesis",
-          value: 3
+          source: 'space-agriculture',
+          target: 'controlled-photosynthesis',
+          value: 3,
         },
         {
-          source: "microgravity-plants",
-          target: "research-gap-adaptation",
-          value: 2
-        }
-      ]
+          source: 'microgravity-plants',
+          target: 'research-gap-adaptation',
+          value: 2,
+        },
+      ],
     };
 
     const mockResearchGaps: RagResearchGap[] = [
       {
-        topic: "Long-term plant adaptation in microgravity",
-        description: "Limited studies on how plants adapt to prolonged exposure to microgravity environments beyond 6 months"
+        topic: 'Long-term plant adaptation in microgravity',
+        description:
+          'Limited studies on how plants adapt to prolonged exposure to microgravity environments beyond 6 months',
       },
       {
-        topic: "Plant reproduction in space conditions",
-        description: "Insufficient research on complete plant life cycles and seed production in space environments"
+        topic: 'Plant reproduction in space conditions',
+        description:
+          'Insufficient research on complete plant life cycles and seed production in space environments',
       },
       {
-        topic: "Closed-loop agricultural systems efficiency",
-        description: "Lack of comprehensive data on resource efficiency in completely closed agricultural systems for space missions"
-      }
+        topic: 'Closed-loop agricultural systems efficiency',
+        description:
+          'Lack of comprehensive data on resource efficiency in completely closed agricultural systems for space missions',
+      },
     ];
 
-    return new RagStructuredResponseDto(answer, mockArticles, mockGraph, mockResearchGaps);
+    return new RagStructuredResponseDto(
+      answer,
+      mockArticles,
+      mockGraph,
+      mockResearchGaps,
+    );
   }
 }
