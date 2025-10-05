@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { VertexAIController } from './vertex-ai.controller';
 import { VertexAIService } from './vertex-ai.service';
 import { ContentProcessorService } from './content-processor.service';
+import { RagService } from './rag.service';
 
 /**
  * Module for Google Cloud VertexAI integration
@@ -22,7 +23,7 @@ import { ContentProcessorService } from './content-processor.service';
  */
 @Module({
   controllers: [VertexAIController],
-  providers: [VertexAIService, ContentProcessorService],
-  exports: [VertexAIService, ContentProcessorService],
+  providers: [VertexAIService, ContentProcessorService, RagService],
+  exports: [VertexAIService, ContentProcessorService, RagService],
 })
 export class VertexAIModule {}

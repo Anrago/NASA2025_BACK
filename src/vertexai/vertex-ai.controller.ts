@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { VertexAIService } from './vertex-ai.service';
+import { RagService } from './rag.service';
 import {
   VertexAIRequestDto,
   VertexAIResponseDto,
@@ -29,7 +30,10 @@ import {
 @ApiTags('vertex-ai')
 @Controller('vertex-ai')
 export class VertexAIController {
-  constructor(private readonly vertexAIService: VertexAIService) {}
+  constructor(
+    private readonly vertexAIService: VertexAIService,
+    private readonly ragService: RagService,
+  ) {}
 
   /**
    * Generate AI content based on a prompt
@@ -475,6 +479,151 @@ export class VertexAIController {
       };
 
       throw new HttpException(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  /**
+   * Generate content with RAG (Retrieval Augmented Generation)
+   * Retrieves relevant information from configured corpus before generating response
+   */
+  @Post('rag/generate')
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @ApiOperation({
+    summary: 'Generate content with RAG (Retrieval Augmented Generation)',
+    description: 'Generates AI content using RAG with Google VertexAI, retrieving relevant information from configured corpus before generating response.'
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        prompt: { type: 'string', description: 'The user prompt for RAG generation' }
+      },
+      required: ['prompt']
+    },
+    examples: {
+      simple: {
+        value: { prompt: 'What are the latest findings about Mars exploration?' }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'RAG content generated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        content: { type: 'string' },
+        timestamp: { type: 'string' }
+      }
+    }
+  })
+  async generateWithRag(@Body('prompt') prompt: string) {
+    try {
+      const content = await this.ragService.generateWithRetrieval(prompt);
+      return {
+        success: true,
+        content,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          error: error.message || 'RAG generation failed',
+          timestamp: new Date().toISOString()
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Generate structured content with RAG
+   * Produces structured JSON content using RAG with answer, related articles, and relationship graph
+   */
+  @Post('rag/structured')
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+  @ApiOperation({
+    summary: 'Generate structured content with RAG',
+    description: 'Generates structured JSON content using RAG with answer, related articles, and relationship graph.'
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        prompt: { type: 'string', description: 'The user prompt for structured RAG generation' }
+      },
+      required: ['prompt']
+    },
+    examples: {
+      structured: {
+        value: { prompt: 'Explain the impact of climate change on space missions' }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Structured RAG content generated successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        answer: { type: 'string' },
+        related_articles: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              title: { type: 'string' },
+              year: { type: 'number' },
+              authors: { type: 'array', items: { type: 'string' } },
+              tags: { type: 'array', items: { type: 'string' } }
+            }
+          }
+        },
+        relationship_graph: {
+          type: 'object',
+          properties: {
+            nodes: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  name: { type: 'string' },
+                  group: { type: 'string' }
+                }
+              }
+            },
+            links: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  source: { type: 'string' },
+                  target: { type: 'string' },
+                  value: { type: 'number' }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+  async generateStructuredWithRag(@Body('prompt') prompt: string) {
+    try {
+      const result = await this.ragService.generateStructuredWithRetrieval(prompt);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        {
+          success: false,
+          error: error.message || 'Structured RAG generation failed',
+          timestamp: new Date().toISOString()
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
 }
