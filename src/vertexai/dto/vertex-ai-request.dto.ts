@@ -25,7 +25,7 @@ export class VertexAIRequestDto {
       'topK (>=1): Number of top candidates.',
     required: false,
     example: {
-      temperature: 0.7,
+      temperature: 1,
       maxOutputTokens: 1024,
       topP: 0.8,
       topK: 40,

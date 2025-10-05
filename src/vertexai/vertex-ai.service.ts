@@ -52,7 +52,7 @@ export class VertexAIService {
    * ```typescript
    * const result = await vertexAIService.generateContent({
    *   prompt: 'Explain black holes',
-   *   parameters: { temperature: 0.7, maxOutputTokens: 1024 }
+   *   parameters: { temperature: process.env.TEMPERATURE, maxOutputTokens: 1024 }
    * });
    * ```
    */
@@ -69,7 +69,7 @@ export class VertexAIService {
       const generativeModel = this.vertexAI.preview.getGenerativeModel({
         model: model,
         generationConfig: {
-          temperature: requestDto.parameters?.temperature || 0.7,
+          temperature: requestDto.parameters?.temperature || (process.env.TEMPERATURE ? parseFloat(process.env.TEMPERATURE) : undefined),
           maxOutputTokens: requestDto.parameters?.maxOutputTokens || 1024,
           topP: requestDto.parameters?.topP || 0.8,
           topK: requestDto.parameters?.topK || 40,
@@ -125,7 +125,7 @@ export class VertexAIService {
       const result = await this.generateContent({
         prompt: testPrompt,
         parameters: {
-          temperature: 0.1,
+          temperature: process.env.TEMPERATURE ? parseFloat(process.env.TEMPERATURE) : undefined,
           maxOutputTokens: 10,
         },
       });
@@ -162,13 +162,13 @@ export class VertexAIService {
       );
 
       const model = 'gemini-2.5-flash-lite';
-      const temperature = promptDto.temperature || 0.7;
+      const temperature = promptDto.temperature || (process.env.TEMPERATURE ? parseFloat(process.env.TEMPERATURE) : undefined);
       const maxTokens = promptDto.maxTokens || 1024;
 
       const generativeModel = this.vertexAI.preview.getGenerativeModel({
         model: model,
         generationConfig: {
-          temperature,
+          temperature: temperature ?? (process.env.TEMPERATURE ? parseFloat(process.env.TEMPERATURE) : 1),
           maxOutputTokens: maxTokens,
           topP: 0.8,
           topK: 40,
@@ -198,7 +198,7 @@ export class VertexAIService {
         true,
         generatedText,
         model,
-        temperature,
+        temperature ?? 1,
         processingTime,
         requestId,
         {
@@ -217,7 +217,7 @@ export class VertexAIService {
         false,
         '',
         'gemini-2.5-flash-lite',
-        promptDto.temperature || 0.7,
+        promptDto.temperature || (process.env.TEMPERATURE ? parseFloat(process.env.TEMPERATURE) : 1),
         processingTime,
         requestId,
         undefined,
@@ -238,7 +238,7 @@ export class VertexAIService {
       this.logger.log(`[${requestId}] Processing structured prompt: ${promptDto.prompt.substring(0, 100)}...`);
 
       const model = 'gemini-2.5-flash-lite';
-      const temperature = promptDto.temperature || 0.7;
+      const temperature = promptDto.temperature || (process.env.TEMPERATURE ? parseFloat(process.env.TEMPERATURE) : 1);
       const maxTokens = promptDto.maxTokens || 2048;
       const responseFormat = promptDto.responseFormat || ResponseFormat.STRUCTURED;
       const contentType = promptDto.contentType || ContentType.EXPLANATION;
@@ -324,7 +324,7 @@ export class VertexAIService {
         timestamp: new Date().toISOString(),
         version: '2.0.0',
         model: 'gemini-2.5-flash-lite',
-        temperature: promptDto.temperature || 0.7,
+        temperature: promptDto.temperature || (process.env.TEMPERATURE ? parseFloat(process.env.TEMPERATURE) : 1),
         maxTokens: promptDto.maxTokens || 2048,
         responseFormat: promptDto.responseFormat || ResponseFormat.STRUCTURED,
         contentType: promptDto.contentType || ContentType.EXPLANATION,
@@ -458,7 +458,7 @@ export class VertexAIService {
       this.logger.log(`[${requestId}] Processing simple structured prompt: ${promptDto.prompt.substring(0, 100)}...`);
 
       const model = 'gemini-2.5-flash-lite';
-      const temperature = promptDto.temperature || 0.3; // Lower temperature for more consistent JSON
+      const temperature = promptDto.temperature || (process.env.TEMPERATURE ? parseFloat(process.env.TEMPERATURE) : 0); // Lower temperature for more consistent JSON
       const maxTokens = promptDto.maxTokens || 4096; // Higher token limit for complete responses
 
       // Construir prompt usando el template del .env

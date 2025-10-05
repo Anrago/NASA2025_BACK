@@ -57,7 +57,7 @@ export class VertexAIController {
         value: {
           prompt: 'What are the main challenges of Mars colonization?',
           parameters: {
-            temperature: 0.7,
+            temperature: process.env.TEMPERATURE,
             maxOutputTokens: 2048,
             topP: 0.9,
             topK: 40,
@@ -79,7 +79,7 @@ export class VertexAIController {
           'The James Webb Space Telescope represents a monumental leap...',
         model: 'gemini-2.5-flash-lite',
         parameters: {
-          temperature: 0.7,
+          temperature: process.env.TEMPERATURE,
           maxOutputTokens: 1024,
         },
       },
@@ -318,7 +318,7 @@ export class VertexAIController {
           timestamp: new Date().toISOString(),
           version: '2.0.0',
           model: 'gemini-2.5-flash-lite',
-          temperature: 0.7,
+          temperature: process.env.TEMPERATURE,
           maxTokens: 2048,
           responseFormat: 'structured',
           contentType: 'explanation',

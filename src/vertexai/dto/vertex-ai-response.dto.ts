@@ -23,7 +23,7 @@ export class VertexAIResponseDto {
       generatedText: 'The James Webb Space Telescope...',
       model: 'gemini-2.5-flash-lite',
       parameters: {
-        temperature: 0.7,
+        temperature: 1,
         maxOutputTokens: 1024,
       },
     },
