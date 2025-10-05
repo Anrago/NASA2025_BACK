@@ -47,12 +47,20 @@ export class User {
   image: string;
 
   @ApiProperty({
-    description: 'Array of favorite article IDs',
-    example: ['article1', 'article2'],
+    description: 'Array of favorite articles',
+    example: [
+      {
+        title: 'Effects of Microgravity on Plant Growth',
+        year: 2023,
+        authors: ['John Doe', 'Jane Smith'],
+        tags: ['microgravity', 'botany'],
+        doi: '10.1038/nature12373',
+      },
+    ],
     nullable: true,
   })
-  @Prop({ default: [], type: [String] })
-  favorites: string[];
+  @Prop({ default: [], type: [Object] })
+  favorites: any[];
 
   @ApiProperty({
     description: 'Timestamp when the user was created',

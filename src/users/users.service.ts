@@ -97,11 +97,16 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
-    if (user.favorites.includes(addFavoriteDto.articleId)) {
+    // Check if article already exists (by title)
+    const existingFavorite = user.favorites.find(
+      (fav: any) => fav.title === addFavoriteDto.title,
+    );
+
+    if (existingFavorite) {
       throw new BadRequestException('Article is already in favorites');
     }
 
-    user.favorites.push(addFavoriteDto.articleId);
+    user.favorites.push(addFavoriteDto);
     return user.save();
   }
 
@@ -114,7 +119,9 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
-    const favoriteIndex = user.favorites.indexOf(removeFavoriteDto.articleId);
+    const favoriteIndex = user.favorites.findIndex(
+      (fav: any) => fav.title === removeFavoriteDto.title,
+    );
     if (favoriteIndex === -1) {
       throw new BadRequestException('Article is not in favorites');
     }
@@ -123,7 +130,7 @@ export class UsersService {
     return user.save();
   }
 
-  async getFavorites(userId: string): Promise<string[]> {
+  async getFavorites(userId: string): Promise<any[]> {
     const user = await this.userModel.findById(userId).exec();
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);

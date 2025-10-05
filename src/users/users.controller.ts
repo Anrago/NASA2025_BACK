@@ -138,7 +138,7 @@ export class UsersController {
   })
   @ApiBody({
     type: AddFavoriteDto,
-    description: 'Article ID to add to favorites',
+    description: 'Article data to add to favorites',
   })
   @ApiResponse({
     status: 200,
@@ -164,7 +164,7 @@ export class UsersController {
   })
   @ApiBody({
     type: RemoveFavoriteDto,
-    description: 'Article ID to remove from favorites',
+    description: 'Article title to remove from favorites',
   })
   @ApiResponse({
     status: 200,
