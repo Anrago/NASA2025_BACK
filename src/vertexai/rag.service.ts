@@ -50,7 +50,6 @@ export class RagService {
         },
       });
 
-
       // Check for error in response
       if (resp.data.error) {
         this.logger.error('Vertex AI API error:', resp.data.error);
@@ -154,7 +153,9 @@ export class RagService {
       if (response.data.candidates && response.data.candidates.length > 0) {
         const candidate = response.data.candidates[0];
         if (candidate.content && candidate.content.parts) {
-          responseText = candidate.content.parts.map((p: any) => p.text).join('');
+          responseText = candidate.content.parts
+            .map((p: any) => p.text)
+            .join('');
         }
       }
 
@@ -253,8 +254,14 @@ export class RagService {
         this.logger.log('JSON content start:', jsonContent.substring(0, 100));
         return JSON.parse(jsonContent);
       } catch (error) {
-        this.logger.warn('Failed to parse JSON from code block:', error.message);
-        this.logger.warn('JSON content preview:', jsonMatch[1].substring(0, 200));
+        this.logger.warn(
+          'Failed to parse JSON from code block:',
+          error.message,
+        );
+        this.logger.warn(
+          'JSON content preview:',
+          jsonMatch[1].substring(0, 200),
+        );
       }
     }
 
@@ -288,7 +295,7 @@ export class RagService {
 
     // Use the new bulk articles template
     const bulkTemplate = process.env.RAG_BULK_ARTICLES_TEMPLATE || '';
-    
+
     const body = {
       contents: [{ role: 'user', parts: [{ text: bulkTemplate }] }],
       tools: {
@@ -314,13 +321,18 @@ export class RagService {
         },
       });
 
-      this.logger.debug('Full bulk articles response:', JSON.stringify(response.data, null, 2));
+      this.logger.debug(
+        'Full bulk articles response:',
+        JSON.stringify(response.data, null, 2),
+      );
 
       let responseText = '';
       if (response.data.candidates && response.data.candidates.length > 0) {
         const candidate = response.data.candidates[0];
         if (candidate.content && candidate.content.parts) {
-          responseText = candidate.content.parts.map((p: any) => p.text).join('');
+          responseText = candidate.content.parts
+            .map((p: any) => p.text)
+            .join('');
         }
       }
 
@@ -329,36 +341,49 @@ export class RagService {
         throw new Error('No response text found in bulk articles request');
       }
 
-      this.logger.log('Bulk articles response text length:', responseText.length);
+      this.logger.log(
+        'Bulk articles response text length:',
+        responseText.length,
+      );
       this.logger.log('Response preview:', responseText.substring(0, 500));
 
       // Parse the JSON response
       try {
         const parsedResponse = this.extractAndParseJSON(responseText);
-        
-        if (parsedResponse && parsedResponse.articles && Array.isArray(parsedResponse.articles)) {
-          this.logger.log(`Successfully retrieved ${parsedResponse.articles.length} articles`);
+
+        if (
+          parsedResponse &&
+          parsedResponse.articles &&
+          Array.isArray(parsedResponse.articles)
+        ) {
+          this.logger.log(
+            `Successfully retrieved ${parsedResponse.articles.length} articles`,
+          );
           return parsedResponse;
         } else {
           this.logger.warn('Invalid bulk articles response structure');
           return {
-            articles: []
+            articles: [],
           };
         }
       } catch (parseError) {
-        this.logger.error('Failed to parse bulk articles JSON:', parseError.message);
+        this.logger.error(
+          'Failed to parse bulk articles JSON:',
+          parseError.message,
+        );
         return {
-          articles: []
+          articles: [],
         };
       }
-
     } catch (error) {
       if (axios.isAxiosError(error)) {
         this.logger.error('Bulk articles API error:', {
           status: error.response?.status,
           data: error.response?.data,
         });
-        throw new Error(`Bulk articles API request failed: ${error.response?.status}`);
+        throw new Error(
+          `Bulk articles API request failed: ${error.response?.status}`,
+        );
       }
       throw error;
     }
