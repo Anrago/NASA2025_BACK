@@ -53,7 +53,7 @@ export class SimpleStructuredResponseDto implements StructuredResponseData {
   constructor(
     answer: string,
     related_articles: StructuredArticle[],
-    relationship_graph: FrontendGraphData
+    relationship_graph: FrontendGraphData,
   ) {
     this.answer = answer;
     this.related_articles = related_articles;
@@ -64,76 +64,76 @@ export class SimpleStructuredResponseDto implements StructuredResponseData {
     // Crear respuesta mock con artículos generados automáticamente
     const mockArticles: StructuredArticle[] = [
       {
-        title: "AI and Machine Learning: Current Trends",
+        title: 'AI and Machine Learning: Current Trends',
         year: 2023,
-        authors: ["Smith, J.", "Johnson, A."],
-        tags: ["artificial intelligence", "machine learning", "trends"]
+        authors: ['Smith, J.', 'Johnson, A.'],
+        tags: ['artificial intelligence', 'machine learning', 'trends'],
       },
       {
-        title: "Natural Language Processing Advances",
+        title: 'Natural Language Processing Advances',
         year: 2024,
-        authors: ["Brown, L.", "Davis, M."],
-        tags: ["NLP", "language models", "processing"]
+        authors: ['Brown, L.', 'Davis, M.'],
+        tags: ['NLP', 'language models', 'processing'],
       },
       {
-        title: "Deep Learning Applications",
+        title: 'Deep Learning Applications',
         year: 2022,
-        authors: ["Wilson, R.", "Taylor, K."],
-        tags: ["deep learning", "neural networks", "applications"]
+        authors: ['Wilson, R.', 'Taylor, K.'],
+        tags: ['deep learning', 'neural networks', 'applications'],
       },
       {
-        title: "Computer Vision Technologies",
+        title: 'Computer Vision Technologies',
         year: 2023,
-        authors: ["Anderson, P.", "Martinez, C."],
-        tags: ["computer vision", "image processing", "technology"]
-      }
+        authors: ['Anderson, P.', 'Martinez, C.'],
+        tags: ['computer vision', 'image processing', 'technology'],
+      },
     ];
 
     const mockGraph: FrontendGraphData = {
       nodes: [
         {
-          id: "ai-machine-learning",
-          name: "AI and Machine Learning: Current Trends",
-          group: "AI"
+          id: 'ai-machine-learning',
+          name: 'AI and Machine Learning: Current Trends',
+          group: 'AI',
         },
         {
-          id: "nlp-advances",
-          name: "Natural Language Processing Advances",
-          group: "AI"
+          id: 'nlp-advances',
+          name: 'Natural Language Processing Advances',
+          group: 'AI',
         },
         {
-          id: "deep-learning",
-          name: "Deep Learning Applications",
-          group: "AI"
+          id: 'deep-learning',
+          name: 'Deep Learning Applications',
+          group: 'AI',
         },
         {
-          id: "computer-vision",
-          name: "Computer Vision Technologies",
-          group: "AI"
-        }
+          id: 'computer-vision',
+          name: 'Computer Vision Technologies',
+          group: 'AI',
+        },
       ],
       links: [
         {
-          source: "ai-machine-learning",
-          target: "nlp-advances",
-          value: 3
+          source: 'ai-machine-learning',
+          target: 'nlp-advances',
+          value: 3,
         },
         {
-          source: "ai-machine-learning",
-          target: "deep-learning",
-          value: 4
+          source: 'ai-machine-learning',
+          target: 'deep-learning',
+          value: 4,
         },
         {
-          source: "ai-machine-learning",
-          target: "computer-vision",
-          value: 2
+          source: 'ai-machine-learning',
+          target: 'computer-vision',
+          value: 2,
         },
         {
-          source: "nlp-advances",
-          target: "deep-learning",
-          value: 2
-        }
-      ]
+          source: 'nlp-advances',
+          target: 'deep-learning',
+          value: 2,
+        },
+      ],
     };
 
     return new SimpleStructuredResponseDto(answer, mockArticles, mockGraph);

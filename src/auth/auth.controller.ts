@@ -31,7 +31,6 @@ export class AuthController {
     type: Auth,
     description: 'User authentication data',
   })
- 
   async login(@Body() credentials: Auth) {
     if (!credentials.email || !credentials.password) {
       throw new UnauthorizedException('Email y contraseña son requeridos');
@@ -39,5 +38,4 @@ export class AuthController {
 
     return await this.authService.login(credentials);
   }
-}  
-
+}

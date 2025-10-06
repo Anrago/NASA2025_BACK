@@ -59,7 +59,7 @@ export class AIResponseDto implements AIResponseStructure {
       code: string;
       message: string;
       details?: any;
-    }
+    },
   ) {
     this.success = success;
     this.data = {

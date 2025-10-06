@@ -46,15 +46,15 @@ export interface RequestMetadata {
 
 export class StructuredResponseDto {
   success: boolean;
-  
+
   data: {
     rawResponse: string;
     structuredContent: StructuredContent;
     performance: PerformanceMetrics;
   };
-  
+
   metadata: RequestMetadata;
-  
+
   error?: {
     code: string;
     message: string;
@@ -73,7 +73,7 @@ export class StructuredResponseDto {
       message: string;
       details?: any;
       suggestions?: string[];
-    }
+    },
   ) {
     this.success = success;
     this.data = {
@@ -93,7 +93,7 @@ export class StructuredResponseDto {
     metadata: RequestMetadata,
     performance: PerformanceMetrics,
     details?: any,
-    suggestions?: string[]
+    suggestions?: string[],
   ): StructuredResponseDto {
     return new StructuredResponseDto(
       false,
@@ -111,7 +111,7 @@ export class StructuredResponseDto {
         message: errorMessage,
         details,
         suggestions,
-      }
+      },
     );
   }
 }

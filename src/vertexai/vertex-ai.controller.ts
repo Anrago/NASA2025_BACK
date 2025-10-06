@@ -768,19 +768,9 @@ export class VertexAIController {
     @Body() chatMessageDto: ChatMessageDto,
   ): Promise<ChatResponseDto> {
     try {
-      // Get AI response using existing service
       // Get AI response using RAG service
       const aiResponse = await this.ragService.generateStructuredWithRetrieval(
         chatMessageDto.message,
-      );
-
-      console.log(
-        '🔥 CONTROLLER - AI Response received:',
-        JSON.stringify(aiResponse, null, 2),
-      );
-      console.log(
-        '🔥 CONTROLLER - relationship_graph:',
-        aiResponse.relationship_graph,
       );
 
       // Create or get historical record
@@ -821,11 +811,6 @@ export class VertexAIController {
         response: aiResponse,
         timestamp: new Date().toISOString(),
       };
-
-      console.log(
-        '🚀 CONTROLLER - Sending response:',
-        JSON.stringify(responsePayload, null, 2),
-      );
 
       return responsePayload;
     } catch (error) {

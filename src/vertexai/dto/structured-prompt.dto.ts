@@ -1,10 +1,19 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, Max, IsBoolean, IsEnum } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+  IsBoolean,
+  IsEnum,
+} from 'class-validator';
 
 export enum ResponseFormat {
   TEXT = 'text',
   STRUCTURED = 'structured',
   JSON = 'json',
-  MARKDOWN = 'markdown'
+  MARKDOWN = 'markdown',
 }
 
 export enum ContentType {
@@ -14,7 +23,7 @@ export enum ContentType {
   CODE = 'code',
   CREATIVE = 'creative',
   ANALYSIS = 'analysis',
-  QUESTION_ANSWER = 'question_answer'
+  QUESTION_ANSWER = 'question_answer',
 }
 
 export class StructuredPromptDto {
