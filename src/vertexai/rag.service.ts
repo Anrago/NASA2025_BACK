@@ -115,7 +115,6 @@ export class RagService {
 
     if (prompt) {
       userPrompt = prompt.replace('{user_query}', userPrompt);
-      this.logger.debug('RAG structured final prompt:', userPrompt);
     }
 
     const body = {
@@ -143,10 +142,6 @@ export class RagService {
           'Content-Type': 'application/json',
         },
       });
-      this.logger.debug(
-        'Full RAG structured response:',
-        JSON.stringify(response.data, null, 2),
-      );
 
       let responseText = '';
 
@@ -248,10 +243,7 @@ export class RagService {
 
     if (jsonMatch) {
       try {
-        this.logger.log('Found JSON code block, attempting to parse');
         const jsonContent = jsonMatch[1].trim();
-        this.logger.log('JSON content length:', jsonContent.length);
-        this.logger.log('JSON content start:', jsonContent.substring(0, 100));
         return JSON.parse(jsonContent);
       } catch (error) {
         this.logger.warn(
@@ -321,11 +313,6 @@ export class RagService {
         },
       });
 
-      this.logger.debug(
-        'Full bulk articles response:',
-        JSON.stringify(response.data, null, 2),
-      );
-
       let responseText = '';
       if (response.data.candidates && response.data.candidates.length > 0) {
         const candidate = response.data.candidates[0];
@@ -337,15 +324,8 @@ export class RagService {
       }
 
       if (!responseText) {
-        this.logger.error('No response text found in bulk articles request');
         throw new Error('No response text found in bulk articles request');
       }
-
-      this.logger.log(
-        'Bulk articles response text length:',
-        responseText.length,
-      );
-      this.logger.log('Response preview:', responseText.substring(0, 500));
 
       // Parse the JSON response
       try {
@@ -356,9 +336,6 @@ export class RagService {
           parsedResponse.articles &&
           Array.isArray(parsedResponse.articles)
         ) {
-          this.logger.log(
-            `Successfully retrieved ${parsedResponse.articles.length} articles`,
-          );
           return parsedResponse;
         } else {
           this.logger.warn('Invalid bulk articles response structure');
